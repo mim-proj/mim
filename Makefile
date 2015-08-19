@@ -43,7 +43,7 @@ all : ${PROGRAM}
 
 
 clean:
-	rm -rf ${OBJS_MODULE} *.mod ${OBJS} ${PROGRAM}
+	rm -rf ${OBJS_MODULE} *.mod ${OBJS} ${PROGRAM} *genmod*
 
 release:
 	rm -rf ${OBJS_MODULE} ${OBJS_MODULE:.o=.f90~} *.mod \
