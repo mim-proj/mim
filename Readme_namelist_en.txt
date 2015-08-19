@@ -112,6 +112,9 @@ MIM (namelist version) by C. Kodama
   INPUT_ZDEF_NUM_OMEGA : number of OMEGA grid point (default=INPUT_ZDEF_NUM)
                          for NCEP/NCAR reanalysis, for example
   INPUT_ZDEF_LEVEL     : pressure levels ( Upper->Lower or Lower->Upper )
+  INPUT_ZDEF_ZREV      : common ZREV setting
+		          = 0 (NOT ZREV i.e. Lower -> Upper, default)
+		          = 1 (ZREV i.e. Upper -> Lower)
 
 
 &INPUT_TDEF : time

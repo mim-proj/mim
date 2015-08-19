@@ -87,6 +87,7 @@ module namelist
 
   integer         :: INPUT_ZDEF_NUM, INPUT_ZDEF_NUM_OMEGA
   real(4)         :: INPUT_ZDEF_LEVEL(km_max)
+  integer         :: INPUT_ZDEF_ZREV
 
   character(1024) :: INPUT_TDEF_TYPE
   integer         :: INPUT_TDEF_DAYNUM
@@ -152,7 +153,8 @@ contains
          &                  INPUT_YDEF_SOUTH, INPUT_YDEF_NORTH, &
          &                  INPUT_YDEF_YREV_DEFAULT, INPUT_YDEF_YREV_TOPO
     namelist / INPUT_ZDEF / INPUT_ZDEF_NUM, INPUT_ZDEF_NUM_OMEGA, &
-         &                  INPUT_ZDEF_LEVEL
+         &                  INPUT_ZDEF_LEVEL, &
+         &                  INPUT_ZDEF_ZREV
 
     namelist / INPUT_TDEF / INPUT_TDEF_TYPE, &
          &                  INPUT_TDEF_DAYNUM, &
@@ -215,6 +217,7 @@ contains
     INPUT_YDEF_YREV_TOPO    = -1
 
     INPUT_ZDEF_NUM_OMEGA = 0
+    INPUT_ZDEF_ZREV      = 0
 
     INPUT_TDEF_365DAY = 0
 

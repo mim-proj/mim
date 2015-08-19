@@ -98,20 +98,20 @@ program mim
 
   if( INPUT_UVT_FILENAME /= '' ) then
      call grads_open( 10, INPUT_UVT_FILENAME, im, jm, 1, &
-          &           0, 1-INPUT_YDEF_YREV_DEFAULT, 1, &
+          &           0, 1-INPUT_YDEF_YREV_DEFAULT, 1-INPUT_ZDEF_ZREV, &
           &           INPUT_ENDIAN_UVT_INT, &
           &           ginfo_uvt )
   else
      call grads_open( 11, INPUT_U_FILENAME, im, jm, km, &
-          &           0, 1-INPUT_YDEF_YREV_DEFAULT, 1, &
+          &           0, 1-INPUT_YDEF_YREV_DEFAULT, 1-INPUT_ZDEF_ZREV, &
           &           INPUT_ENDIAN_U_INT, &
           &           ginfo_u )
      call grads_open( 12, INPUT_V_FILENAME, im, jm, km, &
-          &           0, 1-INPUT_YDEF_YREV_DEFAULT, 1, &
+          &           0, 1-INPUT_YDEF_YREV_DEFAULT, 1-INPUT_ZDEF_ZREV, &
           &           INPUT_ENDIAN_V_INT, &
           &           ginfo_v )
      call grads_open( 13, INPUT_T_FILENAME, im, jm, km, &
-          &           0, 1-INPUT_YDEF_YREV_DEFAULT, 1, &
+          &           0, 1-INPUT_YDEF_YREV_DEFAULT, 1-INPUT_ZDEF_ZREV, &
           &           INPUT_ENDIAN_T_INT, &
           &           ginfo_t )
   end if
@@ -138,20 +138,20 @@ program mim
        &           ginfo_topo )
 
   call grads_open( 40, INPUT_Z_FILENAME, im, jm, km, &
-       &           0, 1-INPUT_YDEF_YREV_DEFAULT, 1, &
+       &           0, 1-INPUT_YDEF_YREV_DEFAULT, 1-INPUT_ZDEF_ZREV, &
        &           INPUT_ENDIAN_Z_INT, &
        &           ginfo_z )
 
   if( INPUT_OMEGA_FILENAME /= '' ) then
      call grads_open( 50, INPUT_OMEGA_FILENAME, im, jm, 1, &
-          &           0, 1-INPUT_YDEF_YREV_DEFAULT, 1, &
+          &           0, 1-INPUT_YDEF_YREV_DEFAULT, 1-INPUT_ZDEF_ZREV, &
           &           INPUT_ENDIAN_OMEGA_INT, &
           &           ginfo_omega )
   end if
 
   if( INPUT_Q_FILENAME /= '' ) then
      call grads_open( 60, INPUT_Q_FILENAME, im, jm, km, &
-          &           0, 1-INPUT_YDEF_YREV_DEFAULT, 1, &
+          &           0, 1-INPUT_YDEF_YREV_DEFAULT, 1-INPUT_ZDEF_ZREV, &
           &           INPUT_ENDIAN_Q_INT, &
           &           ginfo_q )
   end if
