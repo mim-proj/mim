@@ -1,0 +1,72 @@
+
+&INPUT
+  INPUT_U_FILENAME     = 'input-ncep/uwnd.2007.grd',
+  INPUT_V_FILENAME     = 'input-ncep/vwnd.2007.grd',
+  INPUT_T_FILENAME     = 'input-ncep/air.2007.grd',
+  INPUT_PS_FILENAME    = 'input-ncep/pres.sfc.2007.grd',
+  INPUT_Z_FILENAME     = 'input-ncep/hgt.2007.grd',
+  INPUT_OMEGA_FILENAME = 'input-ncep/omega.2007.grd',
+  INPUT_TOPO_FILENAME  = 'input-ncep/hgt.sfc.grd',
+  INPUT_Q_FILENAME     = '',
+/
+
+&INPUT_UNIT
+  INPUT_UNIT_PS   = 'Pa',
+  INPUT_UNIT_TOPO = 'm',
+/
+
+&INPUT_UNDEF
+  INPUT_UNDEF_DEFAULT = -9.99e+33, 
+/
+
+&INPUT_ENDIAN
+  INPUT_ENDIAN_DEFAULT = 'little',
+/
+
+&INPUT_XDEF
+  INPUT_XDEF_NUM = 144,
+/
+
+&INPUT_YDEF
+  INPUT_YDEF_TYPE         = 'linear',
+  INPUT_YDEF_NUM          = 73,
+  INPUT_YDEF_SOUTH        = -90,
+  INPUT_YDEF_NORTH        = 90,
+  INPUT_YDEF_YREV_DEFAULT = 1, 
+/
+
+&INPUT_ZDEF
+  INPUT_ZDEF_NUM       = 17,
+  INPUT_ZDEF_NUM_OMEGA = 12,
+  INPUT_ZDEF_LEVEL =  
+       10.00,   20.00,   30.00,  50.00,  70.00,
+      100.00,  150.00,  200.00, 250.00, 300.00,
+      400.00,  500.00,  600.00, 700.00, 850.00,
+      925.00, 1000.00,
+/
+
+&INPUT_TDEF
+  INPUT_TDEF_TYPE   = 'annual',
+  INPUT_TDEF_DAYNUM = 4,
+  INPUT_TDEF_YEAR   = 2007,
+/
+
+&WAVE
+  WAVE_MAX_NUMBER = 0, 
+/
+
+&OUTPUT
+  OUTPUT_ZONAL_FILENAME = 'output-ncep/zonal2007.grd',
+  OUTPUT_VINT_FILENAME  = 'output-ncep/vint2007.grd',
+  OUTPUT_GMEAN_FILENAME = 'output-ncep/gmean2007.grd',
+  OUTPUT_ERROR_FILENAME = 'output-ncep/error2007.log',
+/
+
+&OUTPUT_ZDEF
+  OUTPUT_ZDEF_NUM   = 17,
+  OUTPUT_ZDEF_LEVEL =  
+       10.00,   20.00,   30.00,  50.00,  70.00,
+      100.00,  150.00,  200.00, 250.00, 300.00,
+      400.00,  500.00,  600.00, 700.00, 850.00,
+      925.00, 1000.00,
+/

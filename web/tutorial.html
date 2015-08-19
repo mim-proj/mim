@@ -1,0 +1,193 @@
+<!-- ########## Below common parts ##########-->
+<html>
+<head>
+<link rel="stylesheet" href="./old-pavement/old-pavement.css" type="text/css">
+<title>MIM : Mass-weighted Isentropic zonal Mean</title>
+</head>
+<body>
+<div class="main">
+<h1>MIM - Tutorial</h1>
+<div class="day">
+<div class="body">
+<div class="section">
+<!-- ########## Above common parts ##########-->
+
+
+<h2>Directory & File List</h2>
+
+<table>
+<tr><th>Name</th><th>Explanation</th></tr>
+<tr><td>Makefile<br>src/Makefile</td><td>Makefile for make command.</td></tr>
+<tr><td>src/*.f90</td><td>Fortran 90 source code.</td></tr>
+<tr><td>web/</td><td>Document (same as website)</td></tr>
+<tr><td>Readme_namelist_en.txt</td><td>Namelist syntax</td></tr>
+<tr><td>Readme_namelist_jp.txt</td><td>Namelist syntax (in Japanese)</td></tr>
+<tr><td>Readme_history_jp.txt</td><td>Change logs (in Japanese)</td></tr>
+<tr><td>input-sample/</td><td>Sample data (NCEP/NCAR reanalysis; Kalnay et al., 1996).</td></tr>
+<tr><td>output-sample/</td><td>Analysis results of sample data.</td></tr>
+<tr><td>sample.sh</td><td>Shell script for sample data analysis.</td></tr>
+</table>
+
+
+<h2>Required Variables</h2>
+<ul>
+  <li>u-wind</li>
+  <li>v-wind</li>
+  <li>air temperature</li>
+  <li>geopotential height</li>
+  <li>surface pressure</li>
+  <li>surface altitude</li>
+  <li>diabatic heating (optional)</li>
+  <li>vertical velocity (optional)</li>
+</ul>
+<p>
+If diabatic heating is not specified, then time derivative of potential
+temperature, which is necessary for EP flux calculation, is estimated as total
+differential of potential temperature. If both diabatic heating and vertical
+velocity is not specified, then vertical velocity is assumed to be zero during
+the estimation of total differential of potential temperature.
+</p>
+
+
+<h2>How to Compile & Analyze Sample Data (Quick Start)</h2>
+
+<h3>1. Edit Makefile</h3>
+<p>
+Specify compiler in Makefile. ifort (intel) and f90 (fujitsu) have already
+been checked.
+</p>
+
+<h3>2. Compile</h3>
+<pre>
+ $ make clean        <- if necessary
+ $ make
+</pre>
+<p>Executable file "MIM" will be created.</p>
+
+<h3>3. Analyze Sample Data (input-ncep/)</h3>
+<pre>
+ $ ./sample.sh
+</pre>
+<p>
+You can see analysis results in output-ncep/.
+</p>
+
+
+
+<h2>How to download, compile & analyze NCEP/NCAR reanalysis</h2>
+
+<p>
+Note: You can also apply below process to NCEP/DOE reanalysis.
+</p>
+
+
+<h3>1. Download & Extract Data</h3>
+<p>
+Visit NOAA's website and get data required for MIM analysis. For example,
+</p>
+<pre>
+ $ wget ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis/pressure/uwnd.2007.nc
+ $ wget ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis/pressure/vwnd.2007.nc
+ $ wget ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis/pressure/air.2007.nc
+ $ wget ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis/pressure/hgt.2007.nc
+ $ wget ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis/surface/pres.sfc.2007.nc
+ $ wget ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis.derived/surface/hgt.sfc.nc
+ $ wget ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis/pressure/omega.2007.nc
+</pre>
+<p>
+Convert data format from NetCDF to GrADS. Sample programs are below for each variable (<a href="http://www.unidata.ucar.edu/software/netcdf/">NetCDF library</a> is needed).
+</p>
+
+<ul>
+  <li><a href="./program/netcdf/uwnd_netcdf_to_grads.f90">uwnd_netcdf_to_grads.f90</a></li>
+  <li><a href="./program/netcdf/vwnd_netcdf_to_grads.f90">vwnd_netcdf_to_grads.f90</a></li>
+  <li><a href="./program/netcdf/air_netcdf_to_grads.f90">air_netcdf_to_grads.f90</a></li>
+  <li><a href="./program/netcdf/hgt_netcdf_to_grads.f90">hgt_netcdf_to_grads.f90</a></li>
+  <li><a href="./program/netcdf/pres.sfc_netcdf_to_grads.f90">pres.sfc_netcdf_to_grads.f90</a></li>
+  <li><a href="./program/netcdf/hgt.sfc_netcdf_to_grads.f90">hgt.sfc_netcdf_to_grads.f90</a></li>
+  <li><a href="./program/netcdf/omega_netcdf_to_grads.f90">omega_netcdf_to_grads.f90</a></li>
+</ul>
+
+<p>
+If your compiler is ifort (intel),
+</p>
+<pre>
+ $ ifort -assume byterecl uwnd_netcdf_to_grads.f90 -lnetcdf
+ $ ./a.out
+</pre>
+<p>
+and so on.
+</p>
+
+
+
+<h3>2. Edit Makefile</h3>
+<p>Specify compiler in Makefile. ifort (intel) and f90 (fujitsu) have already been checked.</p>
+
+
+<h3>3. Compile</h3>
+<pre>
+ $ make clean        <- if necessary
+ $ make
+</pre>
+<p>Executable file "MIM" will be created.</p>
+
+
+<h3>4. Create Namelist</h3>
+<p>
+Namelist is a set of parameters to specify filenames, coordinates, timestep
+etc. Below is a sample namelist for NCEP/NCAR reanalysis. In the sample
+namelist, NCEP/NCAR reanalysis is assumed to be in ./input-ncep and the resulting data in ./output-ncep. See Readme.namelist.en for details about namelist syntax.
+</p>
+<ul>
+  <li><a href="./program/namelist-ncep">namelist-ncep</a></li>
+</ul>
+
+
+
+<h3>5. Analyze</h3>
+<pre>
+ $ ./MIM < namelist-ncep
+</pre>
+<p>
+You can see analysis results in output-ncep/. Sample control files for GrADS
+are below.
+</p>
+
+<ul>
+  <li><a href="./program/control/zonal.ctl">zonal.ctl</a></li>
+  <li><a href="./program/control/vint.ctl">vint.ctl</a></li>
+  <li><a href="./program/control/gmean.ctl">gmean.ctl</a></li>
+</ul>
+
+
+
+
+<h2>Hint for Analyzing other data</h2>
+<p>
+You can analyze various kind of GrADS data by editing namelist. Please read Readme_namelist_en.txt for details on how to write namelist.
+</p>
+
+
+
+
+
+<!-- ########## Below common parts ##########-->
+</div> <!-- end of section -->
+</div> <!-- end of body -->
+</div> <!-- end of day -->
+</div> <!-- end of main -->
+
+<div class="sidebar">
+<h3>MIM</h3>
+<h4><a href="./">Top</a></h4>
+<h4><a href="./download.html">Download</a></h4>
+<h4><a href="./tutorial.html">Tutorial</a></h4>
+<h4><a href="./references.html">References</a></h4>
+<h4><a href="./contributors.html">Contributors</a></h4>
+<h4><a href="./contact.html">Contact</a></h4>
+</div> <!-- end of sidebar -->
+
+</body>
+</html>
+<!-- ########## Above common parts ##########-->
