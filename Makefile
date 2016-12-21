@@ -15,9 +15,10 @@ INSTALL=~/bin
 
 ##### Intel ifort (for 10.0) #####
 FC=ifort
-#OPTION=-assume byterecl -O3 -warn all#    # optimized
+#OPTION=-assume byterecl -O3 -fast -warn all -traceback -heap-arrays    # optimized
+OPTION=-assume byterecl -O3 -warn all -traceback -heap-arrays    # optimized
 #OPTION=-assume byterecl -O0 -warn all -heap-arrays#    # no optimized
-OPTION=-assume byterecl -O0 -warn all -g -traceback -heap-arrays#    # no optimized
+#OPTION=-assume byterecl -O0 -warn all -g -traceback -heap-arrays#    # no optimized
 #OPTION=-assume byterecl -C -warn all#     # for debug
 
 

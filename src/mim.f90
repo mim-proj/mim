@@ -289,14 +289,28 @@ program mim
      !***** omega *****!
      ! omega is assumed to be 0 if (part of) omega is not prepared.
      if( INPUT_OMEGA_FILENAME /= "" ) then
-        
-        do k=km, km-INPUT_ZDEF_NUM_OMEGA+1, -1
-           call grads_read( ginfo_omega, omega(1:im,1:jm,k) )
-        end do
 
-        do k=km-INPUT_ZDEF_NUM_OMEGA, 1, -1
-           omega(1:im,1:jm,k) = 0
-        end do
+        if( INPUT_ZDEF_ZREV == 1 ) then  ! zrev
+
+           do k=1, km-INPUT_ZDEF_NUM_OMEGA
+              omega(1:im,1:jm,k) = 0
+           end do
+
+           do k=km-INPUT_ZDEF_NUM_OMEGA+1,km
+              call grads_read( ginfo_omega, omega(1:im,1:jm,k) )
+           end do
+
+        else 
+        
+           do k=km, km-INPUT_ZDEF_NUM_OMEGA+1, -1
+              call grads_read( ginfo_omega, omega(1:im,1:jm,k) )
+           end do
+
+           do k=km-INPUT_ZDEF_NUM_OMEGA, 1, -1
+              omega(1:im,1:jm,k) = 0
+           end do
+
+        endif
         
      else
         omega(:,:,:) = 0
