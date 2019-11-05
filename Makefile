@@ -14,13 +14,16 @@ INSTALL=~/bin
 
 
 ##### Intel ifort (for 10.0) #####
-FC=ifort
+#FC=ifort
 #OPTION=-assume byterecl -O3 -fast -warn all -traceback -heap-arrays    # optimized
-OPTION=-assume byterecl -O3 -warn all -traceback -heap-arrays    # optimized
-#OPTION=-assume byterecl -O0 -warn all -heap-arrays#    # no optimized
+#OPTION=-assume byterecl -O2 -warn all -traceback -heap-arrays    # optimized
+#OPTION=-assume byterecl -O0 -warn all -traceback -g -heap-arrays#    # no optimized
 #OPTION=-assume byterecl -O0 -warn all -g -traceback -heap-arrays#    # no optimized
 #OPTION=-assume byterecl -C -warn all#     # for debug
 
+##### gfortran
+FC=gfortran
+OPTION=-frecord-marker=4 -O3 -Wall -fbacktrace -g -fcheck=all -fbounds-check
 
 OBJS =
 OBJS_MODULE =

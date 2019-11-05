@@ -1,7 +1,7 @@
 !
 ! Function
 !   prepare for p -> p+ coordinate transformation
-!   
+!
 ! Arguements (in)
 !   im     : number of input data grid point in x-direction
 !   km     : number of input data grid point in z-direction
@@ -18,7 +18,7 @@
 ! Arguements (out)
 !   dlev   : interpolation parameter (weight)
 !   nlev   : interpolation parameter (grid number)
-!   p_pd   : pressure at the p+ levels 
+!   p_pd   : pressure at the p+ levels
 !   p_zm   : zonal mean pressure at the p+ levels (it should approximate pout)
 !   pt_zm  : (zonal mean) potential temperature at the p+ levels
 !
@@ -47,8 +47,12 @@ subroutine getpt( im, km, ko, icount, pin, pout, &
   real(4) :: pt_pd(im, ko)  ! potential temperature at the p+ levels
   real(4) :: pt_zm_old(ko)
   real(4) :: dr
-  integer :: itmax = 8  ! maximum iteration number
+  integer :: itmax = 100  ! maximum iteration number
   integer :: k, it
+  !
+  real(4) :: dlev_bst(im,ko), p_pd_bst(im,ko), p_zm_bst(ko), pt_zm_bst(ko)
+  real(4) :: dr_all(ko), dr_old=0.0
+  integer :: nlev_bst(im, ko)
 
   ! get 1st approximation of pt_zm
   call getpt_pt1( im, 1, km, ko, pin, pout, pt, p_sfc, &
@@ -63,11 +67,10 @@ subroutine getpt( im, km, ko, icount, pin, pout, &
      pt_zm = spread( pt_pds, 1, ko )     ! if underground, pt_zm = pt_pds
   end where
 
-
   !***** iteration (itmax or less times) *****!
   do it=1, itmax
 !     write(*,*) it
-     
+
      ! unstable -> stable
      do k=2, ko
         if( pt_zm(k) < pt_zm(ko) ) then
@@ -97,12 +100,37 @@ subroutine getpt( im, km, ko, icount, pin, pout, &
      ! check convergence condition and finish if appropriate
      do k=1, ko
         dr = abs( p_zm(k) / pout(k) - 1.0 )
-        if( dr > 0.001 ) exit
+!        write(6,*) p_zm(k), pout(k)
+        dr_all(k) = dr
+!        if( dr > 0.001 ) exit
      end do
-     if( dr <= 0.001 ) exit
-  
+
+     ! if the result is better than previous, then store it
+     if( it == 1 .or. sum(dr_all(:)) < dr_old ) then
+        dlev_bst(:,:) = dlev(:,:)
+        nlev_bst(:,:) = nlev(:,:)
+        p_zm_bst(:) = p_zm(:)
+        pt_zm_bst(:) = pt_zm(:)
+        p_pd_bst(:,:) = p_pd(:,:)
+        dr_old = sum(dr_all(:))
+     end if
+
+!     write(6,*) it, p_zm(37), pt_zm(37), dr
+!     if( dr <= 0.001 ) exit
+     if( maxval(dr_all(:)) <= 0.001 ) exit
+
   end do
-     
+
+  ! if it is not converged, then use best result
+  if( it == itmax+1 ) then
+     dlev(:,:) = dlev_bst(:,:)
+     nlev(:,:) = nlev_bst(:,:)
+     p_zm(:) = p_zm_bst(:)
+     pt_zm(:) = pt_zm_bst(:)
+     p_pd(:,:) = p_pd_bst(:,:)
+  end if
+
+
   ! check p_zm and warn
   do k=1, ko
      dr = abs( p_zm(k) / pout(k) - 1.0 )
@@ -126,7 +154,7 @@ end subroutine getpt
 !
 ! Function
 !   prepare for p+ -> p++ coordinate transformation
-!   
+!
 ! Arguements (in)
 !   jm     : number of input data grid point in y-direction
 !   km     : number of input (p+) data grid point in z-direction
@@ -144,8 +172,8 @@ end subroutine getpt
 ! Arguements (out)
 !   dlev_y : interpolation parameter (weight)
 !   nlev_y : interpolation parameter (grid number)
-!   pd_pdd : p+ at the p++ levels 
-!   pd_ym  : global mean pressure at the p++ levels 
+!   pd_pdd : p+ at the p++ levels
+!   pd_ym  : global mean pressure at the p++ levels
 !            (it should approximate pout)
 !   pt_ym  : (global mean) potential temperature at the p++ levels
 !
@@ -175,15 +203,19 @@ subroutine getpt_y( jm, km, ko, icount, pin, pout, alat, &
   real(4) :: pt_pdd(jm, ko)  ! potential temperature at the p++ levels
   real(4) :: pt_ym_old(ko)
   real(4) :: dr
-  integer :: itmax = 8  ! maximum iteration number
+  integer :: itmax = 100  ! maximum iteration number
   integer :: k, it
+  !
+  real(4) :: dlev_y_bst(jm, ko), pd_pdd_bst(jm, ko), pd_ym_bst(ko), pt_ym_bst(ko)
+  real(4) :: dr_all(ko), dr_old=0.0
+  integer :: nlev_y_bst(jm, ko)
 
   ! get 1st approximation of pt_ym
   call getpt_pt1( 1, jm, km, ko, pin, pout, pt_zm, p_pds, &
        &          pt_pdd, nlev_y, dlev_y )
   call integral_meridional( 1, jm, ko, alat, pt_pdd, &
        &                    pt_ym )
-  
+
   ! get pd_pdd ( p+ at the standard p++ levels ) and pd_ym ( = p++ )
   call getpt_p( 1, jm, km, ko, nlev_y, dlev_y, pin, pt_zm, pt_ym, &
        &        pd_pdd )
@@ -207,7 +239,7 @@ subroutine getpt_y( jm, km, ko, icount, pin, pout, alat, &
 
      ! previous value
      pt_ym_old(:) = pt_ym(:)
-     
+
      ! interpolate pt_ym using pt_ym_old in order to make pd_ym close to pout
      call getpt_ptiter( ko, pout, pt_ym_old, pd_ym, p_pdds, pt_pdds, &
           &             pt_ym )
@@ -228,12 +260,33 @@ subroutine getpt_y( jm, km, ko, icount, pin, pout, alat, &
      ! check convergence condition and finish if appropriate
      do k=1, ko
         dr = abs( pd_ym(k) / pout(k) - 1.0 )
-        if( dr > 0.001 ) exit
+        !        if( dr > 0.001 ) exit
+        dr_all(k) = dr
      end do
-     if( dr <= 0.001 ) exit
+     ! if( dr <= 0.001 ) exit
+
+     if( it == 1 .or. sum(dr_all(:)) < dr_old ) then
+        dlev_y_bst(:,:) = dlev_y(:,:)
+        nlev_y_bst(:,:) = nlev_y(:,:)
+        pd_pdd_bst(:,:) = pd_pdd(:,:)
+        pd_ym_bst(:) = pd_ym(:)
+        pt_ym_bst(:) = pt_ym(:)
+        dr_old = sum(dr_all(:))
+     end if
+
+     if( maxval(dr_all(:)) <= 0.001 ) exit
      
   end do
 
+
+  ! if it is not converged, then use the best results
+  if( it == itmax+1 ) then
+     dlev_y(:,:) = dlev_y_bst(:,:)
+     nlev_y(:,:) = nlev_y_bst(:,:)
+     pd_pdd(:,:) = pd_pdd_bst(:,:)
+     pd_ym(:) = pd_ym_bst(:)
+     pt_ym(:) = pt_ym_bst(:)
+  end if
   
   ! check pd_ym and warn
   do k=1, ko
@@ -243,7 +296,7 @@ subroutine getpt_y( jm, km, ko, icount, pin, pout, alat, &
              &      "pd_ym=", pd_ym(k), "err=", dr, "p_pdds=", p_pdds
      end if
   end do
-  
+
   ! check whether the atmosphere is stable or not
   call getpt_stable( 1, ko, pt_ym, p_pdds )
 

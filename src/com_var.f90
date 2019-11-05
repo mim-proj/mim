@@ -83,9 +83,9 @@ contains
   subroutine com_var_pout()
     use namelist, only : OUTPUT_ZDEF_LEVEL
     if( OUTPUT_ZDEF_LEVEL(1) < OUTPUT_ZDEF_LEVEL(2) ) then  ! Upper -> Lower
-       pout(1:km) = OUTPUT_ZDEF_LEVEL(1:km)
+       pout(1:ko) = OUTPUT_ZDEF_LEVEL(1:ko)
     else                                                  ! Lower -> Upper
-       pout(1:km) = OUTPUT_ZDEF_LEVEL(km:1:-1)
+       pout(1:ko) = OUTPUT_ZDEF_LEVEL(ko:1:-1)
     end if
   end subroutine com_var_pout
 

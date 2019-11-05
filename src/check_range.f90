@@ -19,7 +19,7 @@ subroutine check_range( im, jm, km, var, min, max, from, name )
   real(4),intent(in) :: min, max
   character(*),intent(in) :: from, name
   integer,save :: warn_count = 1
-  integer,parameter :: max_warn_count = 100
+  integer,parameter :: max_warn_count = 10000
   
   integer :: i, j, k
   

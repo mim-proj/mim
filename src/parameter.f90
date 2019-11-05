@@ -18,7 +18,8 @@ module parameter
   real(4),parameter :: gamma   = 6.5e-3       ! lapse rate
 
   ! possible range of each variable ( e.g. used in check_range() )
-  real(4),parameter :: t_min     = 100.0      ! Temperature [K]
+!  real(4),parameter :: t_min     = 100.0      ! Temperature [K]
+  real(4),parameter :: t_min     = 50.0      ! Temperature [K]
   real(4),parameter :: t_max     = 10000.0    ! Temperature [K]
   real(4),parameter :: pt_min    = 100.0      ! Potential Temperature [K]
   real(4),parameter :: pt_max    = 10000.0    ! Potential Temperature [K]
