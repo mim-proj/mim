@@ -161,7 +161,7 @@ program mim
   ! - output data is YREV, but NOT ZREV.
   ! - output data is LITTLE ENDIAN.
 
-  call grads_open( 100, OUTPUT_ZONAL_FILENAME, 1, jm, ko, &
+  call grads_open( 100, OUTPUT_ZONAL_FILENAME, 1, 1, ko, &
        &           0, 0, 1, 1, &
        &           ginfo_zonal )
 
@@ -427,346 +427,346 @@ program mim
 !     stop
 
 
-     !***** initialize biseki *****!
-     call biseki_ini( p_pd, p_sfc, p_pds, nlev, dlev )
-     call biseki_y_ini( pd_pdd, p_pds, p_pdds, nlev_y, dlev_y )
+!      !***** initialize biseki *****!
+!      call biseki_ini( p_pd, p_sfc, p_pds, nlev, dlev )
+!      call biseki_y_ini( pd_pdd, p_pds, p_pdds, nlev_y, dlev_y )
 
 
-     !***** zonal wind *****
-     call biseki_biseki( u, u_zm )
-     call check_range( 1, jm, ko, u_zm, wind_min, wind_max, 'mim()', 'u_zm' )
+!      !***** zonal wind *****
+!      call biseki_biseki( u, u_zm )
+!      call check_range( 1, jm, ko, u_zm, wind_min, wind_max, 'mim()', 'u_zm' )
 
 
-!     !***** temperature (not temperature dagger) *****
-!     call biseki_biseki( t, t_zm )
+! !     !***** temperature (not temperature dagger) *****
+! !     call biseki_biseki( t, t_zm )
 
 
-     !***** meridional wind & streamfunction *****!
-     call biseki_sekibun( v, x_pd, xint_zm )  ! xint_zmを使用
-     call biseki_bibun( xint_zm, v_zm )
-     call check_range( 1, jm, ko, v_zm, wind_min, wind_max, 'mim()', 'v_zm' )
+!      !***** meridional wind & streamfunction *****!
+!      call biseki_sekibun( v, x_pd, xint_zm )  ! xint_zmを使用
+!      call biseki_bibun( xint_zm, v_zm )
+!      call check_range( 1, jm, ko, v_zm, wind_min, wind_max, 'mim()', 'v_zm' )
      
-     do j=1, jm
-        cons = 2.0 * pai * radius * 100.0 / grav * costbl(j)        
-        do k=1, ko
-           st_zm(j,k) = xint_zm(j,k) * cons
-        end do
-     end do
-     call check_range( 1, jm, ko, st_zm, st_min, st_max, 'mim()', 'st_zm' )
+!      do j=1, jm
+!         cons = 2.0 * pai * radius * 100.0 / grav * costbl(j)        
+!         do k=1, ko
+!            st_zm(j,k) = xint_zm(j,k) * cons
+!         end do
+!      end do
+!      call check_range( 1, jm, ko, st_zm, st_min, st_max, 'mim()', 'st_zm' )
 
 
-     !***** vertical velocity derived from streamfunction *****!
-     call w_from_st( jm, ko, sintbl, pout, p_pds, st_zm, &
-          &          w_zm )
-     call check_range( 1, jm, ko, w_zm, w_min, w_max, 'mim()', 'w_zm' )
-     
-
-     !***** D(pt)/Dt (D: Lagrangian) *****!
-     if( INPUT_Q_FILENAME == "" ) then
-        call get_pt_dot_omega( INPUT_TDEF_DT, u, v, omega, pt, pt_past, &
-             &                 pt_dot )        ! pt, u, v, w -> D(pt)/dt
-        call get_pt_dot_q_inv( pt_dot, q_3d )  ! D(pt)/dt -> Q
-
-     else
-        call get_pt_dot_q( q_3d, pt_dot )  ! Q -> D(pt)/dt
-     end if
-     call biseki_biseki( pt_dot, pt_dot_zm )
-
-
-     !***** correlation (1) : wind and/or pt_dot *****!
-     ! u_v_x_zm : (u' v')_zm 
-     work(:,:,:) = u(:,:,:) * v(:,:,:)
-     call biseki_biseki( work, u_v_zm )
-     u_v_x_zm(:,:) = u_v_zm(:,:) - u_zm(:,:) * v_zm(:,:)
-
-     ! u_u_x_zm : (u'^2)_zm 
-     work(:,:,:) = u(:,:,:)**2
-     call biseki_biseki( work, u_u_zm )
-     u_u_x_zm(:,:) = u_u_zm(:,:) - u_zm(:,:)**2
-
-     ! v_v_x_zm : (v'^2)_zm 
-     work(:,:,:) = v(:,:,:)**2
-     call biseki_biseki( work, v_v_zm )
-     v_v_x_zm(:,:) = v_v_zm(:,:) - v_zm(:,:)**2
-
-     ! u_u_v_zm : (u^2 v)_zm
-     work(:,:,:) = u(:,:,:)**2 * v(:,:,:)
-     call biseki_biseki( work, u_u_v_zm )
-
-     ! v_v_v_zm : (v^3)_zm
-     work(:,:,:) = v(:,:,:)**3
-     call biseki_biseki( work, v_v_v_zm )
-
-     ! u_pt_dot_x_zm : (u' pt_dot')_zm 
-     work(:,:,:) = u(:,:,:) * pt_dot(:,:,:)
-     call biseki_biseki( work, u_pt_dot_zm )
-     u_pt_dot_x_zm(:,:) = u_pt_dot_zm(:,:) - u_zm(:,:) * pt_dot_zm(:,:)
-
-     ! v_pt_dot_x_zm : (v' pt_dot')_zm
-     work(:,:,:) = v(:,:,:) * pt_dot(:,:,:)
-     call biseki_biseki( work, v_pt_dot_zm )
-     v_pt_dot_x_zm(:,:) = v_pt_dot_zm(:,:) - v_zm(:,:) * pt_dot_zm(:,:)
-
-     ! u_u_pt_dot_zm : (u^2 pt_dot)_zm
-     work(:,:,:) = u(:,:,:)**2 * pt_dot(:,:,:)
-     call biseki_biseki( work, u_u_pt_dot_zm )
-
-     ! v_v_pt_dot_zm : (v^2 pt_dot)_zm 
-     work(:,:,:) = v(:,:,:)**2 * pt_dot(:,:,:)
-     call biseki_biseki( work, v_v_pt_dot_zm )
-
-
-     !***** geopotential height [m] *****!
-     ! z_pd : 3-dimensional geopotential height on the standard p+ levels
-     ! z_zm : zonal mean geopotential height on the standard p+ levels
-     ! 
-     ! for form drag calculation
-     call get_z_pt( alt, t, z, p_pd, p_pds, &
-          &         z_pd, z_zm )
-     if( icount == 1 ) z_pd_past(:,:,:) = z_pd(:,:,:)
-
-
-     !***** epy : meridional component of EP flux *****!
-     call epflux_y( u_v_x_zm, epy )
-     call epflux_div_y( epy, depy )
-
-
-     !***** epz_form : vertical component of EP flux (form drag) *****
-     call epflux_z_form( p_pd, z_pd, p_sfc, &
-          &              epz_form )
-     call epflux_div_z( epz_form, depz_form )
-
-
-     !***** wavenumber decomposition of form drag *****
-     if( OUTPUT_WAVE_FILENAME /= '' .and. WAVE_MAX_NUMBER > 0 ) then
-        call epflux_z_form_wave( p_pd, z_pd, p_sfc, &
-             &                   wmax, p_pt_wave, z_pt_wave, &
-             &                   epz_wave )
-     end if
-
-
-     !***** epz_uw : vertical component of EP flux (except form drag) *****
-     ! epz_uw = epz_uv + epz_ut
-     call epflux_z_uw( pt_zm, u_v_x_zm, u_pt_dot_x_zm, &
-          &            epz_uv, epz_ut, epz_uw )
-     call epflux_div_z( epz_uv, depz_uv )
-     call epflux_div_z( epz_ut, depz_ut )
-     call epflux_div_z( epz_uw, depz_uw )
-
-
-     !***** vertical component of EP flux & its divergence *****!
-     epz(:,:) = epz_form(:,:) + epz_uw(:,:)
-     call epflux_div_z( epz, depz ) 
-
-
-     !***** divF *****!
-     divf(:,:) = depy(:,:) + depz(:,:)
-
-
-     !***** G Flux (meridional momentum equation) *****!
-     call gflux_y( v_zm, v_v_zm, &
-          &        gy )
-     call gflux_div_y( gy, dgy )
-     call gflux_z( pt_zm, v_zm, v_v_zm, v_pt_dot_x_zm, &
-          &        gz )
-     call gflux_div_z( gz, dgz )
-
-
-     !***** phi_dagger *****!
-     ! different from z_zm
-     call get_phi_dagger( alt, p_pds, pt_pds, t_dagger, &
-          &               phi_dagger )
-     if( icount == 1 ) phi_dagger_past(:,:) = phi_dagger(:,:)
+!      !***** vertical velocity derived from streamfunction *****!
+!      call w_from_st( jm, ko, sintbl, pout, p_pds, st_zm, &
+!           &          w_zm )
+!      call check_range( 1, jm, ko, w_zm, w_min, w_max, 'mim()', 'w_zm' )
      
 
-     !***** (dz/dy)_zm & v * dz/dlat *****!
-     call derivative_y( im, jm, km, alat, z, &
-          &             work )
-     call biseki_biseki( work, dz_dlat_zm )
-     work(:,:,:) = v(:,:,:) * work(:,:,:)
-     call biseki_biseki( work, v_dz_dlat_zm )
+!      !***** D(pt)/Dt (D: Lagrangian) *****!
+!      if( INPUT_Q_FILENAME == "" ) then
+!         call get_pt_dot_omega( INPUT_TDEF_DT, u, v, omega, pt, pt_past, &
+!              &                 pt_dot )        ! pt, u, v, w -> D(pt)/dt
+!         call get_pt_dot_q_inv( pt_dot, q_3d )  ! D(pt)/dt -> Q
+
+!      else
+!         call get_pt_dot_q( q_3d, pt_dot )  ! Q -> D(pt)/dt
+!      end if
+!      call biseki_biseki( pt_dot, pt_dot_zm )
+
+
+!      !***** correlation (1) : wind and/or pt_dot *****!
+!      ! u_v_x_zm : (u' v')_zm 
+!      work(:,:,:) = u(:,:,:) * v(:,:,:)
+!      call biseki_biseki( work, u_v_zm )
+!      u_v_x_zm(:,:) = u_v_zm(:,:) - u_zm(:,:) * v_zm(:,:)
+
+!      ! u_u_x_zm : (u'^2)_zm 
+!      work(:,:,:) = u(:,:,:)**2
+!      call biseki_biseki( work, u_u_zm )
+!      u_u_x_zm(:,:) = u_u_zm(:,:) - u_zm(:,:)**2
+
+!      ! v_v_x_zm : (v'^2)_zm 
+!      work(:,:,:) = v(:,:,:)**2
+!      call biseki_biseki( work, v_v_zm )
+!      v_v_x_zm(:,:) = v_v_zm(:,:) - v_zm(:,:)**2
+
+!      ! u_u_v_zm : (u^2 v)_zm
+!      work(:,:,:) = u(:,:,:)**2 * v(:,:,:)
+!      call biseki_biseki( work, u_u_v_zm )
+
+!      ! v_v_v_zm : (v^3)_zm
+!      work(:,:,:) = v(:,:,:)**3
+!      call biseki_biseki( work, v_v_v_zm )
+
+!      ! u_pt_dot_x_zm : (u' pt_dot')_zm 
+!      work(:,:,:) = u(:,:,:) * pt_dot(:,:,:)
+!      call biseki_biseki( work, u_pt_dot_zm )
+!      u_pt_dot_x_zm(:,:) = u_pt_dot_zm(:,:) - u_zm(:,:) * pt_dot_zm(:,:)
+
+!      ! v_pt_dot_x_zm : (v' pt_dot')_zm
+!      work(:,:,:) = v(:,:,:) * pt_dot(:,:,:)
+!      call biseki_biseki( work, v_pt_dot_zm )
+!      v_pt_dot_x_zm(:,:) = v_pt_dot_zm(:,:) - v_zm(:,:) * pt_dot_zm(:,:)
+
+!      ! u_u_pt_dot_zm : (u^2 pt_dot)_zm
+!      work(:,:,:) = u(:,:,:)**2 * pt_dot(:,:,:)
+!      call biseki_biseki( work, u_u_pt_dot_zm )
+
+!      ! v_v_pt_dot_zm : (v^2 pt_dot)_zm 
+!      work(:,:,:) = v(:,:,:)**2 * pt_dot(:,:,:)
+!      call biseki_biseki( work, v_v_pt_dot_zm )
+
+
+!      !***** geopotential height [m] *****!
+!      ! z_pd : 3-dimensional geopotential height on the standard p+ levels
+!      ! z_zm : zonal mean geopotential height on the standard p+ levels
+!      ! 
+!      ! for form drag calculation
+!      call get_z_pt( alt, t, z, p_pd, p_pds, &
+!           &         z_pd, z_zm )
+!      if( icount == 1 ) z_pd_past(:,:,:) = z_pd(:,:,:)
+
+
+!      !***** epy : meridional component of EP flux *****!
+!      call epflux_y( u_v_x_zm, epy )
+!      call epflux_div_y( epy, depy )
+
+
+!      !***** epz_form : vertical component of EP flux (form drag) *****
+!      call epflux_z_form( p_pd, z_pd, p_sfc, &
+!           &              epz_form )
+!      call epflux_div_z( epz_form, depz_form )
+
+
+!      !***** wavenumber decomposition of form drag *****
+!      if( OUTPUT_WAVE_FILENAME /= '' .and. WAVE_MAX_NUMBER > 0 ) then
+!         call epflux_z_form_wave( p_pd, z_pd, p_sfc, &
+!              &                   wmax, p_pt_wave, z_pt_wave, &
+!              &                   epz_wave )
+!      end if
+
+
+!      !***** epz_uw : vertical component of EP flux (except form drag) *****
+!      ! epz_uw = epz_uv + epz_ut
+!      call epflux_z_uw( pt_zm, u_v_x_zm, u_pt_dot_x_zm, &
+!           &            epz_uv, epz_ut, epz_uw )
+!      call epflux_div_z( epz_uv, depz_uv )
+!      call epflux_div_z( epz_ut, depz_ut )
+!      call epflux_div_z( epz_uw, depz_uw )
+
+
+!      !***** vertical component of EP flux & its divergence *****!
+!      epz(:,:) = epz_form(:,:) + epz_uw(:,:)
+!      call epflux_div_z( epz, depz ) 
+
+
+!      !***** divF *****!
+!      divf(:,:) = depy(:,:) + depz(:,:)
+
+
+!      !***** G Flux (meridional momentum equation) *****!
+!      call gflux_y( v_zm, v_v_zm, &
+!           &        gy )
+!      call gflux_div_y( gy, dgy )
+!      call gflux_z( pt_zm, v_zm, v_v_zm, v_pt_dot_x_zm, &
+!           &        gz )
+!      call gflux_div_z( gz, dgz )
+
+
+!      !***** phi_dagger *****!
+!      ! different from z_zm
+!      call get_phi_dagger( alt, p_pds, pt_pds, t_dagger, &
+!           &               phi_dagger )
+!      if( icount == 1 ) phi_dagger_past(:,:) = phi_dagger(:,:)
+     
+
+!      !***** (dz/dy)_zm & v * dz/dlat *****!
+!      call derivative_y( im, jm, km, alat, z, &
+!           &             work )
+!      call biseki_biseki( work, dz_dlat_zm )
+!      work(:,:,:) = v(:,:,:) * work(:,:,:)
+!      call biseki_biseki( work, v_dz_dlat_zm )
 
      
-     !***** u * dz/dx *****!
-     call derivative_x( im, jm, km, z, &
-          &             work )
-     work(:,:,:) = u(:,:,:) * work(:,:,:)
-     call biseki_biseki( work, u_dz_dlon_zm )
+!      !***** u * dz/dx *****!
+!      call derivative_x( im, jm, km, z, &
+!           &             work )
+!      work(:,:,:) = u(:,:,:) * work(:,:,:)
+!      call biseki_biseki( work, u_dz_dlon_zm )
 
 
-     !***** p dz/dt *****!
-     p_dz_dt(:,:,:) = ( z_pd(:,:,:) - z_pd_past(:,:,:) ) &
-          &         * ( p_pd(:,:,:) + p_pd_past(:,:,:) ) &
-          &         / 2 * 100 / INPUT_TDEF_DT
-     p_dz_dt_zm = sum( p_dz_dt, dim=1 ) / real(im)
+!      !***** p dz/dt *****!
+!      p_dz_dt(:,:,:) = ( z_pd(:,:,:) - z_pd_past(:,:,:) ) &
+!           &         * ( p_pd(:,:,:) + p_pd_past(:,:,:) ) &
+!           &         / 2 * 100 / INPUT_TDEF_DT
+!      p_dz_dt_zm = sum( p_dz_dt, dim=1 ) / real(im)
 
 
-     !***** p+ d(phi_dagger)/dt *****!
-     p_dphi_dt(:,:) = ( phi_dagger(:,:) - phi_dagger_past(:,:) ) &
-          &         * spread( pout, 1, jm ) * 100 / INPUT_TDEF_DT
+!      !***** p+ d(phi_dagger)/dt *****!
+!      p_dphi_dt(:,:) = ( phi_dagger(:,:) - phi_dagger_past(:,:) ) &
+!           &         * spread( pout, 1, jm ) * 100 / INPUT_TDEF_DT
 
 
-     !***** energy *****!
+!      !***** energy *****!
 
-     ! kz : zonal kinetic energy
-     kz_zm(:,:) = 0.5 * ( u_zm(:,:)**2 + v_zm(:,:)**2 )
+!      ! kz : zonal kinetic energy
+!      kz_zm(:,:) = 0.5 * ( u_zm(:,:)**2 + v_zm(:,:)**2 )
 
-     ! ke : eddy kinetic energy
-     ke_zm(:,:) = 0.5 * ( u_u_x_zm(:,:) + v_v_x_zm(:,:) )
+!      ! ke : eddy kinetic energy
+!      ke_zm(:,:) = 0.5 * ( u_u_x_zm(:,:) + v_v_x_zm(:,:) )
 
-     ! pz : zonal potential energy (NOT available potential energy)
-     pz_zm(:,:) = ( cp - gasr ) * t_dagger(:,:) + phi_dagger(:,:)
+!      ! pz : zonal potential energy (NOT available potential energy)
+!      pz_zm(:,:) = ( cp - gasr ) * t_dagger(:,:) + phi_dagger(:,:)
 
-     ! ae_total_zm : eddy available potential energy (including surface term)
-     !               (recommend not to use)
-     call energy_ae_total( p_pd, p_zm, p_pds, pt_zm, &
-          &                ae_total_zm )
+!      ! ae_total_zm : eddy available potential energy (including surface term)
+!      !               (recommend not to use)
+!      call energy_ae_total( p_pd, p_zm, p_pds, pt_zm, &
+!           &                ae_total_zm )
 
-     ! ae_zm_vint : vertically integrated eddy available potential energy
-     !              (not equals to vertically integrated ae_total_zm)
-     call energy_ae_vint( p_pd, p_zm, p_sfc, p_pds, pt_zm, pt_pds, &
-          &               ae_zm_vint )
+!      ! ae_zm_vint : vertically integrated eddy available potential energy
+!      !              (not equals to vertically integrated ae_total_zm)
+!      call energy_ae_vint( p_pd, p_zm, p_sfc, p_pds, pt_zm, pt_pds, &
+!           &               ae_zm_vint )
 
-     ! az_zm_vint : vertically integrated zonal available potential energy
-     call energy_az_vint( p_pds, p_pdds, pd_pdd, pt_pdds, pt_ym, &
-          &               az_zm_vint )
+!      ! az_zm_vint : vertically integrated zonal available potential energy
+!      call energy_az_vint( p_pds, p_pdds, pd_pdd, pt_pdds, pt_ym, &
+!           &               az_zm_vint )
 
-     ! az_gmean   : global mean zonal available potential energy
-     !              (for accuracy, az_zm_vint is not used here)
-     call energy_az_gmean( p_pds, p_pdds, pd_pdd, pd_ym, &
-          &                pt_pdds, pt_ym, &
-          &                az_gmean )
+!      ! az_gmean   : global mean zonal available potential energy
+!      !              (for accuracy, az_zm_vint is not used here)
+!      call energy_az_gmean( p_pds, p_pdds, pd_pdd, pd_ym, &
+!           &                pt_pdds, pt_ym, &
+!           &                az_gmean )
 
 
-     !***** correlation (2) : Ke and something *****!
-     v_ke_zm(:,:) = 0.5 * ( u_u_v_zm(:,:) - 2 * u_v_zm(:,:) * u_zm(:,:) &
-          &               + u_zm(:,:)**2 * v_zm(:,:) &
-          &               + v_v_v_zm(:,:) - 2 * v_v_zm(:,:) * v_zm(:,:) &
-          &               + v_zm(:,:)**3 )
+!      !***** correlation (2) : Ke and something *****!
+!      v_ke_zm(:,:) = 0.5 * ( u_u_v_zm(:,:) - 2 * u_v_zm(:,:) * u_zm(:,:) &
+!           &               + u_zm(:,:)**2 * v_zm(:,:) &
+!           &               + v_v_v_zm(:,:) - 2 * v_v_zm(:,:) * v_zm(:,:) &
+!           &               + v_zm(:,:)**3 )
      
-     pt_dot_ke_zm(:,:) = 0.5 * ( u_u_pt_dot_zm(:,:) &
-          &                    - 2 * u_pt_dot_zm(:,:) * u_zm(:,:) &
-          &                    + u_zm(:,:)**2 * pt_dot_zm(:,:) &
-          &                    + v_v_pt_dot_zm(:,:) &
-          &                    - 2 * v_pt_dot_zm(:,:) * v_zm(:,:) &
-          &                    + v_zm(:,:)**2 * pt_dot_zm(:,:) )
+!      pt_dot_ke_zm(:,:) = 0.5 * ( u_u_pt_dot_zm(:,:) &
+!           &                    - 2 * u_pt_dot_zm(:,:) * u_zm(:,:) &
+!           &                    + u_zm(:,:)**2 * pt_dot_zm(:,:) &
+!           &                    + v_v_pt_dot_zm(:,:) &
+!           &                    - 2 * v_pt_dot_zm(:,:) * v_zm(:,:) &
+!           &                    + v_zm(:,:)**2 * pt_dot_zm(:,:) )
 
 
-     !***** energy conversion (global mean) *****!
+!      !***** energy conversion (global mean) *****!
 
-     ! C(Az,Kz)
-     call energy_conv_az_kz( alt, p_pds, v_zm, pt_zm, pt_sfc, phi_dagger, &
-     &                       c_az_kz )
+!      ! C(Az,Kz)
+!      call energy_conv_az_kz( alt, p_pds, v_zm, pt_zm, pt_sfc, phi_dagger, &
+!      &                       c_az_kz )
      
-     ! C(Ae,Kz)
-     call energy_conv_kz_ae( u_zm, v_zm, depz_form, dz_dlat_zm, c_az_kz, &
-          &                  c_kz_ae_u, c_kz_ae_v, c_kz_ae )
+!      ! C(Ae,Kz)
+!      call energy_conv_kz_ae( u_zm, v_zm, depz_form, dz_dlat_zm, c_az_kz, &
+!           &                  c_kz_ae_u, c_kz_ae_v, c_kz_ae )
      
-     ! C(Ae,Ke)
-     call energy_conv_ae_ke( v_zm, c_kz_ae_u, &
-          &                  dz_dlat_zm, v_dz_dlat_zm, u_dz_dlon_zm, &
-          &                  c_ae_ke_u, c_ae_ke_v, c_ae_ke )
+!      ! C(Ae,Ke)
+!      call energy_conv_ae_ke( v_zm, c_kz_ae_u, &
+!           &                  dz_dlat_zm, v_dz_dlat_zm, u_dz_dlon_zm, &
+!           &                  c_ae_ke_u, c_ae_ke_v, c_ae_ke )
      
-     ! C(Kz,Ke)
-     call energy_conv_kz_ke( u_zm, v_zm, u_u_x_zm,  &
-          &                  depy, depz_uw, dgy, dgz, &
-          &                  c_kz_ke_uy, c_kz_ke_uz, &
-          &                  c_kz_ke_vy, c_kz_ke_vz, c_kz_ke_tan, &
-          &                  c_kz_ke )
+!      ! C(Kz,Ke)
+!      call energy_conv_kz_ke( u_zm, v_zm, u_u_x_zm,  &
+!           &                  depy, depz_uw, dgy, dgz, &
+!           &                  c_kz_ke_uy, c_kz_ke_uz, &
+!           &                  c_kz_ke_vy, c_kz_ke_vz, c_kz_ke_tan, &
+!           &                  c_kz_ke )
 
-     ! C(Kz,W)
-     c_kz_w(:,:) = c_kz_ke(:,:) + c_kz_ae(:,:)
-
-
-
-     !***** 2-dimensional energy conversion *****!
-
-     ! dKz/dt
-     call energy_tendency_dkzdt_vkz( v_zm, kz_zm, &
-          &                          dkzdt_vkz )
-     call energy_tendency_dkzdt_wkz( w_zm, kz_zm, &
-          &                          dkzdt_wkz )
-
-     ! dKe/dt
-     call energy_tendency_dkedt_uy( u_zm, epy, &
-          &                         dkedt_uy )
-     call energy_tendency_dkedt_vy( v_zm, gy, &
-          &                         dkedt_vy )
-     call energy_tendency_dkedt_uz( u_zm, epz_uw, &
-          &                         dkedt_uz )
-     call energy_tendency_dkedt_vz( v_zm, gz, &
-          &                         dkedt_vz )
-
-     call energy_tendency_dkedt_vke( v_ke_zm, dkedt_vke )
-
-     call energy_tendency_dkedt_wke( pt_zm, v_ke_zm, pt_dot_ke_zm, &
-          &                          dkedt_wke )
+!      ! C(Kz,W)
+!      c_kz_w(:,:) = c_kz_ke(:,:) + c_kz_ae(:,:)
 
 
-     !***** Diabatic Heating *****!
-     ! q_zm : zonal mean diabatic heating
-     call biseki_biseki( q_3d, q_zm )
 
-     ! q_3d [J/(kg s)] -> q_ex_3d [K/s] ( = Q / Pi )
-     do k=1, km
-        do j=1, jm
-           do i=1, im
-              q_ex_3d(i,j,k) = q_3d(i,j,k) &
-                   &         / ( cp * ( pin(k) / 1000.0 )**rkappa )
-           end do
-        end do
-     end do
-     call biseki_biseki( q_ex_3d, q_ex_zm )
+!      !***** 2-dimensional energy conversion *****!
 
-     ! Qgz
-     do k=1, ko
-        do j=1, jm
-           qgz_zm(j,k) = q_ex_zm(j,k) * ( pout(k) / 1000.0 )**rkappa * cp
-        end do
-     end do
+!      ! dKz/dt
+!      call energy_tendency_dkzdt_vkz( v_zm, kz_zm, &
+!           &                          dkzdt_vkz )
+!      call energy_tendency_dkzdt_wkz( w_zm, kz_zm, &
+!           &                          dkzdt_wkz )
 
-     ! qe_zm : zonal mean eddy diabatic heating
-     call diabatic_qe( im, jm, km, ko, q_3d, pin, pd_p, &
-          &            qe_zm )
+!      ! dKe/dt
+!      call energy_tendency_dkedt_uy( u_zm, epy, &
+!           &                         dkedt_uy )
+!      call energy_tendency_dkedt_vy( v_zm, gy, &
+!           &                         dkedt_vy )
+!      call energy_tendency_dkedt_uz( u_zm, epz_uw, &
+!           &                         dkedt_uz )
+!      call energy_tendency_dkedt_vz( v_zm, gz, &
+!           &                         dkedt_vz )
 
-     ! qz_gmean : global mean zonal diabatic heating
-     call diabatic_qz( jm, ko, q_ex_zm, pout, pdd_pd, &
-          &            qz_pdd )
-     call integral_p( 1, ko, pout, p_pdds, qz_pdd, &
-          &           qz_gmean )
+!      call energy_tendency_dkedt_vke( v_ke_zm, dkedt_vke )
+
+!      call energy_tendency_dkedt_wke( pt_zm, v_ke_zm, pt_dot_ke_zm, &
+!           &                          dkedt_wke )
 
 
-     ! ***** below not checked *****!
-     ! for future reuse
-     ! local____time differential
+!      !***** Diabatic Heating *****!
+!      ! q_zm : zonal mean diabatic heating
+!      call biseki_biseki( q_3d, q_zm )
+
+!      ! q_3d [J/(kg s)] -> q_ex_3d [K/s] ( = Q / Pi )
+!      do k=1, km
+!         do j=1, jm
+!            do i=1, im
+!               q_ex_3d(i,j,k) = q_3d(i,j,k) &
+!                    &         / ( cp * ( pin(k) / 1000.0 )**rkappa )
+!            end do
+!         end do
+!      end do
+!      call biseki_biseki( q_ex_3d, q_ex_zm )
+
+!      ! Qgz
+!      do k=1, ko
+!         do j=1, jm
+!            qgz_zm(j,k) = q_ex_zm(j,k) * ( pout(k) / 1000.0 )**rkappa * cp
+!         end do
+!      end do
+
+!      ! qe_zm : zonal mean eddy diabatic heating
+!      call diabatic_qe( im, jm, km, ko, q_3d, pin, pd_p, &
+!           &            qe_zm )
+
+!      ! qz_gmean : global mean zonal diabatic heating
+!      call diabatic_qz( jm, ko, q_ex_zm, pout, pdd_pd, &
+!           &            qz_pdd )
+!      call integral_p( 1, ko, pout, p_pdds, qz_pdd, &
+!           &           qz_gmean )
+
+
+!      ! ***** below not checked *****!
+!      ! for future reuse
+!      ! local____time differential
      
-!     call derivative_p_nops(1, jm, ko, pout, p_dz_dt_zm, &
-!          &                 divz_tzm)
-     call derivative_p(1, jm, ko, pout, p_pds, p_dz_dt_zm, &
-          &            divz_tzm)
-     divz_tzm(:,:) = -divz_tzm(:,:) / 100.0 * grav
+! !     call derivative_p_nops(1, jm, ko, pout, p_dz_dt_zm, &
+! !          &                 divz_tzm)
+!      call derivative_p(1, jm, ko, pout, p_pds, p_dz_dt_zm, &
+!           &            divz_tzm)
+!      divz_tzm(:,:) = -divz_tzm(:,:) / 100.0 * grav
      
-     call derivative_p(1, jm, ko, pout, p_pds, p_dphi_dt, &
-          &            divphi_t)
-!     divphi_t(:,:) = -divphi_t(:,:) / 100.0 * grav
-     divphi_t(:,:) = -divphi_t(:,:) / 100.0
+!      call derivative_p(1, jm, ko, pout, p_pds, p_dphi_dt, &
+!           &            divphi_t)
+! !     divphi_t(:,:) = -divphi_t(:,:) / 100.0 * grav
+!      divphi_t(:,:) = -divphi_t(:,:) / 100.0
 
-     do k=1, ko
-        do j=1, jm
-           uuv_tmp(j,k) = u_zm(j,k) * ( epz_uv(j,k) + epz_ut(j,k) ) &
-                &         / radius / costbl(j)
-        end do
-     end do
-     call derivative_p(1, jm, ko, pout, p_pds, uuv_tmp, &
-          &            d_u_epz)
-     d_u_epz(:,:) = -d_u_epz(:,:) / 100.0 * grav
+!      do k=1, ko
+!         do j=1, jm
+!            uuv_tmp(j,k) = u_zm(j,k) * ( epz_uv(j,k) + epz_ut(j,k) ) &
+!                 &         / radius / costbl(j)
+!         end do
+!      end do
+!      call derivative_p(1, jm, ko, pout, p_pds, uuv_tmp, &
+!           &            d_u_epz)
+!      d_u_epz(:,:) = -d_u_epz(:,:) / 100.0 * grav
      
-     !    local energy budget about wave energy
-     divz_tzm(:,:) = -divz_tzm(:,:)
-     divphi_t(:,:) = divphi_t(:,:)
-     dwdt(:,:) = divz_tzm(:,:) + divphi_t(:,:) + dkedt_uy(:,:) + d_u_epz(:,:)
+!      !    local energy budget about wave energy
+!      divz_tzm(:,:) = -divz_tzm(:,:)
+!      divphi_t(:,:) = divphi_t(:,:)
+!      dwdt(:,:) = divz_tzm(:,:) + divphi_t(:,:) + dkedt_uy(:,:) + d_u_epz(:,:)
 
-     ! ***** above not checked *****!
+!      ! ***** above not checked *****!
     
 
 
@@ -774,186 +774,22 @@ program mim
 
      !********** output GrADS data **********
 
-     ! lat-lev
+     ! vert
      if( OUTPUT_ZONAL_FILENAME /= '' ) then
-        call grads_write( ginfo_zonal, u_zm )
-        call grads_write( ginfo_zonal, v_zm )
-        call grads_write( ginfo_zonal, pt_zm )
-        call grads_write( ginfo_zonal, t_dagger )
-        call grads_write( ginfo_zonal, st_zm )
-        
-        call grads_write( ginfo_zonal, w_zm )
-        call grads_write( ginfo_zonal, z_zm )
-        call grads_write( ginfo_zonal, epy )
-        call grads_write( ginfo_zonal, depy )
-        call grads_write( ginfo_zonal, epz_form )
-        
-        call grads_write( ginfo_zonal, depz_form )
-        call grads_write( ginfo_zonal, epz_uv )
-        call grads_write( ginfo_zonal, depz_uv )
-        call grads_write( ginfo_zonal, epz_ut )
-        call grads_write( ginfo_zonal, depz_ut )
-        
-        call grads_write( ginfo_zonal, epz )
-        call grads_write( ginfo_zonal, depz )
-        call grads_write( ginfo_zonal, divf )
-        call grads_write( ginfo_zonal, gy )
-        call grads_write( ginfo_zonal, dgy )
-                
-        call grads_write( ginfo_zonal, gz )
-        call grads_write( ginfo_zonal, dgz )
-        call grads_write( ginfo_zonal, u_u_x_zm )
-        call grads_write( ginfo_zonal, c_az_kz )
-        call grads_write( ginfo_zonal, c_kz_ae_u )
-        
-        call grads_write( ginfo_zonal, c_kz_ae_v )
-        call grads_write( ginfo_zonal, c_kz_ae )
-        call grads_write( ginfo_zonal, c_ae_ke_u )
-        call grads_write( ginfo_zonal, c_ae_ke_v )
-        call grads_write( ginfo_zonal, c_ae_ke )
-        
-        call grads_write( ginfo_zonal, c_kz_ke_uy )
-        call grads_write( ginfo_zonal, c_kz_ke_uz )
-        call grads_write( ginfo_zonal, c_kz_ke_vy )
-        call grads_write( ginfo_zonal, c_kz_ke_vz )
-        call grads_write( ginfo_zonal, c_kz_ke_tan )
-        
-        call grads_write( ginfo_zonal, c_kz_ke )
-        call grads_write( ginfo_zonal, c_kz_w )
-        call grads_write( ginfo_zonal, q_zm )
-        call grads_write( ginfo_zonal, qgz_zm )
-        call grads_write( ginfo_zonal, qe_zm )
-        
-        call grads_write( ginfo_zonal, kz_zm )
-        call grads_write( ginfo_zonal, ke_zm )
-        call grads_write( ginfo_zonal, pz_zm )
-        call grads_write( ginfo_zonal, ae_total_zm )
-        call grads_write( ginfo_zonal, dkzdt_vkz )
+        call grads_write( ginfo_zonal, pt_ym )
 
-        call grads_write( ginfo_zonal, dkzdt_wkz )
-        call grads_write( ginfo_zonal, dkedt_uy )        
-        call grads_write( ginfo_zonal, dkedt_vy )
-        call grads_write( ginfo_zonal, dkedt_uz )
-        call grads_write( ginfo_zonal, dkedt_vz )
-
-        call grads_write( ginfo_zonal, dkedt_vke )
-        call grads_write( ginfo_zonal, dkedt_wke )
-        call grads_write( ginfo_zonal, dpedt_vt )  ! not used
-        call grads_write( ginfo_zonal, d_u_epz )   ! not checked 
-        call grads_write( ginfo_zonal, divz_tzm )  ! not checked
-
-        call grads_write( ginfo_zonal, divphi_t )  ! not checked
-        call grads_write( ginfo_zonal, dwdt )      ! not checked
      end if
      
      ! lat
      if( OUTPUT_VINT_FILENAME /= '' ) then
-        call integral_p( jm, ko, pout, p_pds, kz_zm, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-        
-        call integral_p( jm, ko, pout, p_pds, ke_zm, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-        
-        call grads_write( ginfo_vint, az_zm_vint )
-        
-        call grads_write( ginfo_vint, ae_zm_vint )
-
-        call integral_p( jm, ko, pout, p_pds, c_az_kz, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-        
-        call integral_p( jm, ko, pout, p_pds, c_kz_ae_u, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-        
-        call integral_p( jm, ko, pout, p_pds, c_kz_ae_v, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-        
-        call integral_p( jm, ko, pout, p_pds, c_kz_ae, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-        
-        call integral_p( jm, ko, pout, p_pds, c_ae_ke_u, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-        
-        call integral_p( jm, ko, pout, p_pds, c_ae_ke_v, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-        
-        call integral_p( jm, ko, pout, p_pds, c_ae_ke, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-        
-        call integral_p( jm, ko, pout, p_pds, c_kz_ke_uy, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-
-        call integral_p( jm, ko, pout, p_pds, c_kz_ke_uz, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-        
-        call integral_p( jm, ko, pout, p_pds, c_kz_ke_vy, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-        
-        call integral_p( jm, ko, pout, p_pds, c_kz_ke_vz, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-        
-        call integral_p( jm, ko, pout, p_pds, c_kz_ke_tan, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-        
-        call integral_p( jm, ko, pout, p_pds, c_kz_ke, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-        
-        call integral_p( jm, ko, pout, p_pds, c_kz_w, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-        
-        call integral_p( jm, ko, pout, p_pds, q_zm, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-        
-        call integral_p( jm, ko, pout, p_pds, qgz_zm, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-        
-        call integral_p( jm, ko, pout, p_pds, qe_zm, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-        
-        call integral_p( jm, ko, pout, p_pds, dkzdt_vkz, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-
-        call integral_p( jm, ko, pout, p_pds, dkzdt_wkz, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-
-        call integral_p( jm, ko, pout, p_pds, dkedt_uy, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-        
-        call integral_p( jm, ko, pout, p_pds, dkedt_vy, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-        
-        call integral_p( jm, ko, pout, p_pds, dkedt_uz, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-        
-        call integral_p( jm, ko, pout, p_pds, dkedt_vz, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-        
-        call integral_p( jm, ko, pout, p_pds, dkedt_vke, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-        
-        call integral_p( jm, ko, pout, p_pds, dkedt_wke, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-        
-        call integral_p( jm, ko, pout, p_pds, dpedt_vt, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-        
-        call integral_p( jm, ko, pout, p_pds, d_u_epz, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-
-        call integral_p( jm, ko, pout, p_pds, divz_tzm, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-        
-        call integral_p( jm, ko, pout, p_pds, divphi_t, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-        
-        call integral_p( jm, ko, pout, p_pds, dwdt, temp_vint )
-        call grads_write( ginfo_vint, temp_vint )
-
+        call grads_write( ginfo_vint, p_pds )
+        call grads_write( ginfo_vint, pt_pds )
      end if
 
      ! global mean
      if( OUTPUT_GMEAN_FILENAME /= '' ) then
-        call grads_write( ginfo_gmean, az_gmean )
-        call grads_write( ginfo_gmean, qz_gmean )
+        call grads_write( ginfo_gmean, p_pdds )
+        call grads_write( ginfo_gmean, pt_pdds )
      end if
 
      ! wavenumber decomposition
@@ -968,7 +804,7 @@ program mim
      pt_past(:,:,:) = pt(:,:,:)
      z_pd_past(:,:,:) = z_pd(:,:,:)
      p_pd_past(:,:,:) = p_pd(:,:,:)
-     phi_dagger_past(:,:) = phi_dagger(:,:)
+!     phi_dagger_past(:,:) = phi_dagger(:,:)
      
   end do
 
