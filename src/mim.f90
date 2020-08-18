@@ -1,7 +1,7 @@
 program mim
 !############################################################
 !
-!  Program MIM  
+!  Program MIM
 !
 !
 !    Please see Readme_namelist_en.txt for details
@@ -30,7 +30,7 @@ program mim
   integer :: i, j, k, w
   integer :: icount
   real(4) :: cons
-  
+
   ! input information
   type(grads_info) :: ginfo_topo  ! for INPUT_TOPO
   type(grads_info) :: ginfo_uvt   ! for INPUT_UVT
@@ -49,6 +49,10 @@ program mim
   type(grads_info) :: ginfo_vint   ! for OUTPUT_VINT
   type(grads_info) :: ginfo_gmean  ! for OUTPUT_GMEAN
   type(grads_info) :: ginfo_wave   ! for OUTPUT_WAVE
+
+  !--- diabatic write to file
+  integer :: omt, orec
+  character(len=124) :: ofile
 
 
 !  write(*,*) "MIM Version dev"
@@ -76,7 +80,7 @@ program mim
   call com_var_zd()
   call com_var_rho()
 
-  ! latitude ( alat [rad] ) and sin/cos/tan table 
+  ! latitude ( alat [rad] ) and sin/cos/tan table
   !   alat: YREV (i.e. north -> south)
   call com_var_alat()
   call com_var_sintbl()
@@ -89,7 +93,7 @@ program mim
 
 
   !********** open input file **********!
-  ! - all variables should be YREV (north->south) 
+  ! - all variables should be YREV (north->south)
   !   and ZREV (upper->lower) in mim.f90.
 
   !***** input *****!
@@ -236,7 +240,7 @@ program mim
         do k=km, 1, -1
            call grads_read( ginfo_uvt, v(1:im,1:jm,k) )
         end do
-     
+
         do k=km, 1, -1
            call grads_read( ginfo_uvt, t(1:im,1:jm,k) )
         end do
@@ -252,10 +256,10 @@ program mim
      end if
 
 
-     !***** surface pressure [hPa] *****!     
+     !***** surface pressure [hPa] *****!
      if( INPUT_PS_FILENAME /= '' ) then
         call grads_read( ginfo_ps, p_sfc )
-     
+
         if( INPUT_UNIT_PS == 'Pa' ) then
            p_sfc(:,:) = p_sfc(:,:) / 100.0  ! [Pa] -> [hPa]
         end if
@@ -300,8 +304,8 @@ program mim
               call grads_read( ginfo_omega, omega(1:im,1:jm,k) )
            end do
 
-        else 
-        
+        else
+
            do k=km, km-INPUT_ZDEF_NUM_OMEGA+1, -1
               call grads_read( ginfo_omega, omega(1:im,1:jm,k) )
            end do
@@ -311,7 +315,7 @@ program mim
            end do
 
         endif
-        
+
      else
         omega(:,:,:) = 0
      end if
@@ -336,7 +340,7 @@ program mim
      call undef_fill( im, jm, km, INPUT_UNDEF_Z_REAL    , pin, z )
      call undef_fill( im, jm, km, INPUT_UNDEF_OMEGA_REAL, pin, omega )
      call undef_fill( im, jm, km, INPUT_UNDEF_Q_REAL    , pin, q_3d )
-     
+
 
      !********** check value **********!
      call check_range( im, jm, km, u, wind_min, wind_max, 'mim()', 'u' )
@@ -349,7 +353,7 @@ program mim
 
 
      !********** start diagnosis **********!
-  
+
      !***** surface pressure *****!
      p_pds = sum( p_sfc, dim=1 ) / im   ! p+s (p-dagger at the surface)
                                         ! i.e. zonal mean p_sfc
@@ -365,7 +369,12 @@ program mim
      ! pt_sfc : 2-dimensional porential temperature at the surface
      call setpt0( t, p_sfc, &
           &       pt, pt_sfc )
-     if( icount == 1 ) pt_past(:,:,:) = pt(:,:,:)
+     if( icount == 1 ) then
+        pt_past(:,:,:) = pt(:,:,:)
+        u_past(:,:,:) = u(:,:,:)
+        v_past(:,:,:) = v(:,:,:)
+        omega_past(:,:,:) = omega(:,:,:)
+     end if
 
      ! pt_pds : potential temperature at the surface in the p+ coordinate
      !          i.e. min(pt_sfc)
@@ -445,9 +454,9 @@ program mim
      call biseki_sekibun( v, x_pd, xint_zm )  ! xint_zm‚ðŽg—p
      call biseki_bibun( xint_zm, v_zm )
      call check_range( 1, jm, ko, v_zm, wind_min, wind_max, 'mim()', 'v_zm' )
-     
+
      do j=1, jm
-        cons = 2.0 * pai * radius * 100.0 / grav * costbl(j)        
+        cons = 2.0 * pai * radius * 100.0 / grav * costbl(j)
         do k=1, ko
            st_zm(j,k) = xint_zm(j,k) * cons
         end do
@@ -459,11 +468,12 @@ program mim
      call w_from_st( jm, ko, sintbl, pout, p_pds, st_zm, &
           &          w_zm )
      call check_range( 1, jm, ko, w_zm, w_min, w_max, 'mim()', 'w_zm' )
-     
+
 
      !***** D(pt)/Dt (D: Lagrangian) *****!
      if( INPUT_Q_FILENAME == "" ) then
-        call get_pt_dot_omega( INPUT_TDEF_DT, u, v, omega, pt, pt_past, &
+        call get_pt_dot_omega( INPUT_TDEF_DT, u, u_past, v, v_past, &
+             &                 omega, omega_past, pt, pt_past, &
              &                 pt_dot )        ! pt, u, v, w -> D(pt)/dt
         call get_pt_dot_q_inv( pt_dot, q_3d )  ! D(pt)/dt -> Q
 
@@ -472,19 +482,35 @@ program mim
      end if
      call biseki_biseki( pt_dot, pt_dot_zm )
 
+     !--- write q_3d to file
+     if( icount == 1 ) then
+        !open file
+        omt=88
+        orec=1
+        ofile="/Volumes/Drobo/Isen_MIM/mim/work/w_check/tmp/q3d_tint5_wderived_200001.dr"
+        open(omt, file=ofile, form="unformatted", access="direct", recl=4*im*jm*km)
+     end if
+     ! write to file
+     ! zrev yrev
+     write(omt, rec=orec) (((q_3d(i,j,k), i=1,im), j=jm,1,-1), k=1,km)
+     orec = orec + 1
+     !
+     if( icount == tstep) then
+        close(omt)
+     end if
 
      !***** correlation (1) : wind and/or pt_dot *****!
-     ! u_v_x_zm : (u' v')_zm 
+     ! u_v_x_zm : (u' v')_zm
      work(:,:,:) = u(:,:,:) * v(:,:,:)
      call biseki_biseki( work, u_v_zm )
      u_v_x_zm(:,:) = u_v_zm(:,:) - u_zm(:,:) * v_zm(:,:)
 
-     ! u_u_x_zm : (u'^2)_zm 
+     ! u_u_x_zm : (u'^2)_zm
      work(:,:,:) = u(:,:,:)**2
      call biseki_biseki( work, u_u_zm )
      u_u_x_zm(:,:) = u_u_zm(:,:) - u_zm(:,:)**2
 
-     ! v_v_x_zm : (v'^2)_zm 
+     ! v_v_x_zm : (v'^2)_zm
      work(:,:,:) = v(:,:,:)**2
      call biseki_biseki( work, v_v_zm )
      v_v_x_zm(:,:) = v_v_zm(:,:) - v_zm(:,:)**2
@@ -497,7 +523,7 @@ program mim
      work(:,:,:) = v(:,:,:)**3
      call biseki_biseki( work, v_v_v_zm )
 
-     ! u_pt_dot_x_zm : (u' pt_dot')_zm 
+     ! u_pt_dot_x_zm : (u' pt_dot')_zm
      work(:,:,:) = u(:,:,:) * pt_dot(:,:,:)
      call biseki_biseki( work, u_pt_dot_zm )
      u_pt_dot_x_zm(:,:) = u_pt_dot_zm(:,:) - u_zm(:,:) * pt_dot_zm(:,:)
@@ -511,7 +537,7 @@ program mim
      work(:,:,:) = u(:,:,:)**2 * pt_dot(:,:,:)
      call biseki_biseki( work, u_u_pt_dot_zm )
 
-     ! v_v_pt_dot_zm : (v^2 pt_dot)_zm 
+     ! v_v_pt_dot_zm : (v^2 pt_dot)_zm
      work(:,:,:) = v(:,:,:)**2 * pt_dot(:,:,:)
      call biseki_biseki( work, v_v_pt_dot_zm )
 
@@ -519,7 +545,7 @@ program mim
      !***** geopotential height [m] *****!
      ! z_pd : 3-dimensional geopotential height on the standard p+ levels
      ! z_zm : zonal mean geopotential height on the standard p+ levels
-     ! 
+     !
      ! for form drag calculation
      call get_z_pt( alt, t, z, p_pd, p_pds, &
           &         z_pd, z_zm )
@@ -556,7 +582,7 @@ program mim
 
      !***** vertical component of EP flux & its divergence *****!
      epz(:,:) = epz_form(:,:) + epz_uw(:,:)
-     call epflux_div_z( epz, depz ) 
+     call epflux_div_z( epz, depz )
 
 
      !***** divF *****!
@@ -577,7 +603,7 @@ program mim
      call get_phi_dagger( alt, p_pds, pt_pds, t_dagger, &
           &               phi_dagger )
      if( icount == 1 ) phi_dagger_past(:,:) = phi_dagger(:,:)
-     
+
 
      !***** (dz/dy)_zm & v * dz/dlat *****!
      call derivative_y( im, jm, km, alat, z, &
@@ -586,7 +612,7 @@ program mim
      work(:,:,:) = v(:,:,:) * work(:,:,:)
      call biseki_biseki( work, v_dz_dlat_zm )
 
-     
+
      !***** u * dz/dx *****!
      call derivative_x( im, jm, km, z, &
           &             work )
@@ -643,7 +669,7 @@ program mim
           &               + u_zm(:,:)**2 * v_zm(:,:) &
           &               + v_v_v_zm(:,:) - 2 * v_v_zm(:,:) * v_zm(:,:) &
           &               + v_zm(:,:)**3 )
-     
+
      pt_dot_ke_zm(:,:) = 0.5 * ( u_u_pt_dot_zm(:,:) &
           &                    - 2 * u_pt_dot_zm(:,:) * u_zm(:,:) &
           &                    + u_zm(:,:)**2 * pt_dot_zm(:,:) &
@@ -657,16 +683,16 @@ program mim
      ! C(Az,Kz)
      call energy_conv_az_kz( alt, p_pds, v_zm, pt_zm, pt_sfc, phi_dagger, &
      &                       c_az_kz )
-     
+
      ! C(Ae,Kz)
      call energy_conv_kz_ae( u_zm, v_zm, depz_form, dz_dlat_zm, c_az_kz, &
           &                  c_kz_ae_u, c_kz_ae_v, c_kz_ae )
-     
+
      ! C(Ae,Ke)
      call energy_conv_ae_ke( v_zm, c_kz_ae_u, &
           &                  dz_dlat_zm, v_dz_dlat_zm, u_dz_dlon_zm, &
           &                  c_ae_ke_u, c_ae_ke_v, c_ae_ke )
-     
+
      ! C(Kz,Ke)
      call energy_conv_kz_ke( u_zm, v_zm, u_u_x_zm,  &
           &                  depy, depz_uw, dgy, dgz, &
@@ -739,13 +765,13 @@ program mim
      ! ***** below not checked *****!
      ! for future reuse
      ! local____time differential
-     
+
 !     call derivative_p_nops(1, jm, ko, pout, p_dz_dt_zm, &
 !          &                 divz_tzm)
      call derivative_p(1, jm, ko, pout, p_pds, p_dz_dt_zm, &
           &            divz_tzm)
      divz_tzm(:,:) = -divz_tzm(:,:) / 100.0 * grav
-     
+
      call derivative_p(1, jm, ko, pout, p_pds, p_dphi_dt, &
           &            divphi_t)
 !     divphi_t(:,:) = -divphi_t(:,:) / 100.0 * grav
@@ -760,14 +786,14 @@ program mim
      call derivative_p(1, jm, ko, pout, p_pds, uuv_tmp, &
           &            d_u_epz)
      d_u_epz(:,:) = -d_u_epz(:,:) / 100.0 * grav
-     
+
      !    local energy budget about wave energy
      divz_tzm(:,:) = -divz_tzm(:,:)
      divphi_t(:,:) = divphi_t(:,:)
      dwdt(:,:) = divz_tzm(:,:) + divphi_t(:,:) + dkedt_uy(:,:) + d_u_epz(:,:)
 
      ! ***** above not checked *****!
-    
+
 
 
 
@@ -781,49 +807,49 @@ program mim
         call grads_write( ginfo_zonal, pt_zm )
         call grads_write( ginfo_zonal, t_dagger )
         call grads_write( ginfo_zonal, st_zm )
-        
+
         call grads_write( ginfo_zonal, w_zm )
         call grads_write( ginfo_zonal, z_zm )
         call grads_write( ginfo_zonal, epy )
         call grads_write( ginfo_zonal, depy )
         call grads_write( ginfo_zonal, epz_form )
-        
+
         call grads_write( ginfo_zonal, depz_form )
         call grads_write( ginfo_zonal, epz_uv )
         call grads_write( ginfo_zonal, depz_uv )
         call grads_write( ginfo_zonal, epz_ut )
         call grads_write( ginfo_zonal, depz_ut )
-        
+
         call grads_write( ginfo_zonal, epz )
         call grads_write( ginfo_zonal, depz )
         call grads_write( ginfo_zonal, divf )
         call grads_write( ginfo_zonal, gy )
         call grads_write( ginfo_zonal, dgy )
-                
+
         call grads_write( ginfo_zonal, gz )
         call grads_write( ginfo_zonal, dgz )
         call grads_write( ginfo_zonal, u_u_x_zm )
         call grads_write( ginfo_zonal, c_az_kz )
         call grads_write( ginfo_zonal, c_kz_ae_u )
-        
+
         call grads_write( ginfo_zonal, c_kz_ae_v )
         call grads_write( ginfo_zonal, c_kz_ae )
         call grads_write( ginfo_zonal, c_ae_ke_u )
         call grads_write( ginfo_zonal, c_ae_ke_v )
         call grads_write( ginfo_zonal, c_ae_ke )
-        
+
         call grads_write( ginfo_zonal, c_kz_ke_uy )
         call grads_write( ginfo_zonal, c_kz_ke_uz )
         call grads_write( ginfo_zonal, c_kz_ke_vy )
         call grads_write( ginfo_zonal, c_kz_ke_vz )
         call grads_write( ginfo_zonal, c_kz_ke_tan )
-        
+
         call grads_write( ginfo_zonal, c_kz_ke )
         call grads_write( ginfo_zonal, c_kz_w )
         call grads_write( ginfo_zonal, q_zm )
         call grads_write( ginfo_zonal, qgz_zm )
         call grads_write( ginfo_zonal, qe_zm )
-        
+
         call grads_write( ginfo_zonal, kz_zm )
         call grads_write( ginfo_zonal, ke_zm )
         call grads_write( ginfo_zonal, pz_zm )
@@ -831,7 +857,7 @@ program mim
         call grads_write( ginfo_zonal, dkzdt_vkz )
 
         call grads_write( ginfo_zonal, dkzdt_wkz )
-        call grads_write( ginfo_zonal, dkedt_uy )        
+        call grads_write( ginfo_zonal, dkedt_uy )
         call grads_write( ginfo_zonal, dkedt_vy )
         call grads_write( ginfo_zonal, dkedt_uz )
         call grads_write( ginfo_zonal, dkedt_vz )
@@ -839,76 +865,76 @@ program mim
         call grads_write( ginfo_zonal, dkedt_vke )
         call grads_write( ginfo_zonal, dkedt_wke )
         call grads_write( ginfo_zonal, dpedt_vt )  ! not used
-        call grads_write( ginfo_zonal, d_u_epz )   ! not checked 
+        call grads_write( ginfo_zonal, d_u_epz )   ! not checked
         call grads_write( ginfo_zonal, divz_tzm )  ! not checked
 
         call grads_write( ginfo_zonal, divphi_t )  ! not checked
         call grads_write( ginfo_zonal, dwdt )      ! not checked
      end if
-     
+
      ! lat
      if( OUTPUT_VINT_FILENAME /= '' ) then
         call integral_p( jm, ko, pout, p_pds, kz_zm, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
-        
+
         call integral_p( jm, ko, pout, p_pds, ke_zm, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
-        
+
         call grads_write( ginfo_vint, az_zm_vint )
-        
+
         call grads_write( ginfo_vint, ae_zm_vint )
 
         call integral_p( jm, ko, pout, p_pds, c_az_kz, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
-        
+
         call integral_p( jm, ko, pout, p_pds, c_kz_ae_u, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
-        
+
         call integral_p( jm, ko, pout, p_pds, c_kz_ae_v, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
-        
+
         call integral_p( jm, ko, pout, p_pds, c_kz_ae, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
-        
+
         call integral_p( jm, ko, pout, p_pds, c_ae_ke_u, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
-        
+
         call integral_p( jm, ko, pout, p_pds, c_ae_ke_v, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
-        
+
         call integral_p( jm, ko, pout, p_pds, c_ae_ke, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
-        
+
         call integral_p( jm, ko, pout, p_pds, c_kz_ke_uy, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
 
         call integral_p( jm, ko, pout, p_pds, c_kz_ke_uz, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
-        
+
         call integral_p( jm, ko, pout, p_pds, c_kz_ke_vy, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
-        
+
         call integral_p( jm, ko, pout, p_pds, c_kz_ke_vz, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
-        
+
         call integral_p( jm, ko, pout, p_pds, c_kz_ke_tan, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
-        
+
         call integral_p( jm, ko, pout, p_pds, c_kz_ke, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
-        
+
         call integral_p( jm, ko, pout, p_pds, c_kz_w, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
-        
+
         call integral_p( jm, ko, pout, p_pds, q_zm, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
-        
+
         call integral_p( jm, ko, pout, p_pds, qgz_zm, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
-        
+
         call integral_p( jm, ko, pout, p_pds, qe_zm, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
-        
+
         call integral_p( jm, ko, pout, p_pds, dkzdt_vkz, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
 
@@ -917,34 +943,34 @@ program mim
 
         call integral_p( jm, ko, pout, p_pds, dkedt_uy, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
-        
+
         call integral_p( jm, ko, pout, p_pds, dkedt_vy, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
-        
+
         call integral_p( jm, ko, pout, p_pds, dkedt_uz, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
-        
+
         call integral_p( jm, ko, pout, p_pds, dkedt_vz, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
-        
+
         call integral_p( jm, ko, pout, p_pds, dkedt_vke, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
-        
+
         call integral_p( jm, ko, pout, p_pds, dkedt_wke, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
-        
+
         call integral_p( jm, ko, pout, p_pds, dpedt_vt, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
-        
+
         call integral_p( jm, ko, pout, p_pds, d_u_epz, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
 
         call integral_p( jm, ko, pout, p_pds, divz_tzm, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
-        
+
         call integral_p( jm, ko, pout, p_pds, divphi_t, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
-        
+
         call integral_p( jm, ko, pout, p_pds, dwdt, temp_vint )
         call grads_write( ginfo_vint, temp_vint )
 
@@ -966,10 +992,13 @@ program mim
 
      ! save *_past
      pt_past(:,:,:) = pt(:,:,:)
+     u_past(:,:,:) = u(:,:,:)
+     v_past(:,:,:) = v(:,:,:)
+     omega_past(:,:,:) = omega(:,:,:)
      z_pd_past(:,:,:) = z_pd(:,:,:)
      p_pd_past(:,:,:) = p_pd(:,:,:)
      phi_dagger_past(:,:) = phi_dagger(:,:)
-     
+
   end do
 
   ! deallocate memory

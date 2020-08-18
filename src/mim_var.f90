@@ -157,6 +157,9 @@ module mim_var
 
   real(4),allocatable :: z_pd(:,:,:)
   real(4),allocatable :: pt_past(:,:,:)
+  real(4),allocatable :: u_past(:,:,:)
+  real(4),allocatable :: v_past(:,:,:)
+  real(4),allocatable :: omega_past(:,:,:)
   real(4),allocatable :: phi_dagger_past(:,:)
   real(4),allocatable :: z_pd_past(:,:,:)
   real(4),allocatable :: p_pd_past(:,:,:)
@@ -189,7 +192,7 @@ contains
     integer,intent(in) :: km   ! input data z direction levels
     integer,intent(in) :: ko   ! output data z direction levels
     integer,intent(in) :: wmax ! maximum wave number
-    
+
     allocate( u(im,jm,km) )
     allocate( v(im,jm,km) )
     allocate( t(im,jm,km) )
@@ -203,7 +206,7 @@ contains
 
     allocate( pt(im,jm,km) )
     allocate( pt_dot(im,jm,km) )
-    
+
     allocate( p_zm(jm,ko) )
     allocate( u_zm(jm,ko) )
     allocate( v_zm(jm,ko) )
@@ -249,7 +252,7 @@ contains
     allocate( dgy(jm,ko) )
     allocate( gz(jm,ko) )
     allocate( dgz(jm,ko) )
-    
+
     allocate( kz_zm(jm,ko) )
     allocate( ke_zm(jm,ko) )
     allocate( pz_zm(jm,ko) )
@@ -274,7 +277,7 @@ contains
     allocate( c_kz_ke_tan(jm,ko) )
     allocate( c_kz_w(jm,ko) )
 
-  
+
     allocate( nlev(im,jm,ko) )
     allocate( dlev(im,jm,ko) )
     allocate( p_pd(im,jm,ko) )
@@ -283,7 +286,7 @@ contains
     allocate( pt_sfc(im,jm) )
     allocate( pt_pds(jm) )
     allocate( pd_p(im,jm,km) )
-    
+
     allocate( dlev_y(jm,ko) )
     allocate( nlev_y(jm,ko) )
     allocate( pd_pdd(jm,ko) )
@@ -292,7 +295,7 @@ contains
     allocate( pdd_pd(jm,ko) )
 
 
-    
+
 
     allocate( dz_dlat_zm(jm,ko) )
     allocate( v_dz_dlat_zm(jm,ko) )
@@ -321,10 +324,13 @@ contains
     allocate( dkedt_wke(jm,ko) )
     allocate( dpedt_vt(jm,ko) )
     allocate( dpedt_wt(jm,ko) )
- 
-    
+
+
     allocate( z_pd(im,jm,ko) )
     allocate( pt_past(im,jm,km) )
+    allocate( u_past(im,jm,km) )
+    allocate( v_past(im,jm,km) )
+    allocate( omega_past(im,jm,km) )
     allocate( phi_dagger_past(jm,ko) )
     allocate( z_pd_past(im,jm,ko) )
     allocate( p_pd_past(im,jm,ko) )
@@ -342,13 +348,13 @@ contains
     allocate( qgz_zm(jm,ko) )
     allocate( qz_pdd(ko) )
     allocate( qe_zm(jm,ko) )
-    
+
     allocate( p_pds(jm) )
     allocate( work(im,jm,km) )
-    
+
 
   end subroutine mim_var_ini
-  
+
 
 
   subroutine mim_var_end()
@@ -436,7 +442,7 @@ contains
     deallocate( c_kz_ke_tan )
     deallocate( c_kz_w )
 
-  
+
     deallocate( nlev )
     deallocate( dlev )
     deallocate( p_pd )
@@ -452,8 +458,8 @@ contains
     deallocate( pd_ym )
     deallocate( pt_ym )
     deallocate( pdd_pd )
-    
-    
+
+
     deallocate( dz_dlat_zm )
     deallocate( v_dz_dlat_zm )
     deallocate( u_dz_dlon_zm )
@@ -481,10 +487,13 @@ contains
     deallocate( dkedt_wke )
     deallocate( dpedt_vt )
     deallocate( dpedt_wt )
-    
-    
+
+
     deallocate( z_pd )
     deallocate( pt_past )
+    deallocate( u_past )
+    deallocate( v_past )
+    deallocate( omega_past )
     deallocate( phi_dagger_past )
     deallocate( z_pd_past )
     deallocate( p_pd_past )
@@ -492,7 +501,7 @@ contains
     if( allocated( epz_wave ) ) deallocate( epz_wave )
     if( allocated( z_pt_wave ) ) deallocate( z_pt_wave )
     if( allocated( p_pt_wave ) ) deallocate( p_pt_wave )
-    
+
     deallocate( q_3d )
     deallocate( q_zm )
     deallocate( q_ex_3d )
