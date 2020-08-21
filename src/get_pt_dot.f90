@@ -43,7 +43,7 @@ subroutine get_pt_dot_omega( dt, u, u_before, v, v_before, omega, omega_before, 
   real(4) :: dphi, dp
 
   ! ntm = 1 calculates 1 time step
-  ntm = 10
+  ntm = 1
 
   pt_dot(:,:,:) = 0.0
 
