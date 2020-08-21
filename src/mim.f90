@@ -50,10 +50,6 @@ program mim
   type(grads_info) :: ginfo_gmean  ! for OUTPUT_GMEAN
   type(grads_info) :: ginfo_wave   ! for OUTPUT_WAVE
 
-  !--- diabatic write to file
-  integer :: omt, orec
-  character(len=124) :: ofile
-
 
 !  write(*,*) "MIM Version dev"
   write(*,*) "MIM Version 0.33r1" ! Please rewrite Makefile
@@ -498,22 +494,6 @@ program mim
      end if
      call biseki_biseki( pt_dot, pt_dot_zm )
 
-     !--- write q_3d to file
-     if( icount == 1 ) then
-        !open file
-        omt=88
-        orec=1
-        ofile="/Volumes/Drobo/Isen_MIM/mim/work/w_check/tmp/omega_implement_wderived_outer_200001.dr"
-        open(omt, file=ofile, form="unformatted", access="direct", recl=4*im*jm*km)
-     end if
-     ! write to file
-     ! zrev yrev
-     write(omt, rec=orec) (((omega(i,j,k), i=1,im), j=jm,1,-1), k=1,km)
-     orec = orec + 1
-     !
-     if( icount == tstep) then
-        close(omt)
-     end if
 
      !***** correlation (1) : wind and/or pt_dot *****!
      ! u_v_x_zm : (u' v')_zm
