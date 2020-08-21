@@ -15,7 +15,11 @@
 !
 ! Note
 !   -If omega=0 (no input), vertical advection of pt will be neglected.
+!     - This is aborted (2020/8/21)
+!     - omega is estimated in subroutine get_omega
 !   -If pt=pt_before (e.g. first time step), local pt change will be neglected.
+!   -Use data in one step before for advection. This reduces errors arose from
+!    miss matching in time of tenddency and advection terms (2020/8/21).
 !
 subroutine get_pt_dot_omega( dt, u, u_before, v, v_before, omega, omega_before, &
      &                       pt, pt_before, &
@@ -33,17 +37,15 @@ subroutine get_pt_dot_omega( dt, u, u_before, v, v_before, omega, omega_before, 
   real(4),intent(in)  :: pt(im, jm, km)
   real(4),intent(in)  :: pt_before(im, jm, km)
   real(4),intent(out) :: pt_dot(im, jm, km)
-
+  !
+  integer,parameter :: ntm = 1      ! estimave advection at (t+t-1)/2
   integer :: i, j, k
   integer :: il, iu, jl, ju, kd, ku ! lower and upper indices
-  integer :: ntm, nt
+  integer :: nt
   real(4) :: tint
   real(4) :: pt_east, pt_west, pt_nth, pt_sth, pt_d, pt_u
   real(4) :: u_int, v_int, omega_int
   real(4) :: dphi, dp
-
-  ! ntm = 1 calculates 1 time step
-  ntm = 1
 
   pt_dot(:,:,:) = 0.0
 

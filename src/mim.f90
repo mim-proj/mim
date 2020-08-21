@@ -472,6 +472,22 @@ program mim
 
      !***** D(pt)/Dt (D: Lagrangian) *****!
      if( INPUT_Q_FILENAME == "" ) then
+
+        if( INPUT_OMEGA_FILENAME == "" ) then
+           ! calculate omega from continuity Eq.
+           call get_omega(u, v, p_sfc, omega)
+
+           if( icount == 1 ) then
+              omega_past(:,:,:) = omega(:,:,:)
+           end if
+
+           ! check calculation result
+           call undef_fill( im, jm, km, INPUT_UNDEF_OMEGA_REAL, pin, omega )
+           call check_range( im, jm, km, omega, omega_min, omega_max, &
+                &            'mim()', 'omega' )
+        end if
+
+
         call get_pt_dot_omega( INPUT_TDEF_DT, u, u_past, v, v_past, &
              &                 omega, omega_past, pt, pt_past, &
              &                 pt_dot )        ! pt, u, v, w -> D(pt)/dt
@@ -487,12 +503,12 @@ program mim
         !open file
         omt=88
         orec=1
-        ofile="/Volumes/Drobo/Isen_MIM/mim/work/w_check/tmp/q3d_refaactor_200001.dr"
+        ofile="/Volumes/Drobo/Isen_MIM/mim/work/w_check/tmp/omega_implement_wderived_outer_200001.dr"
         open(omt, file=ofile, form="unformatted", access="direct", recl=4*im*jm*km)
      end if
      ! write to file
      ! zrev yrev
-     write(omt, rec=orec) (((q_3d(i,j,k), i=1,im), j=jm,1,-1), k=1,km)
+     write(omt, rec=orec) (((omega(i,j,k), i=1,im), j=jm,1,-1), k=1,km)
      orec = orec + 1
      !
      if( icount == tstep) then
