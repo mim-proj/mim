@@ -35,6 +35,7 @@ subroutine get_pt_dot_omega( dt, u, u_before, v, v_before, omega, omega_before, 
   real(4),intent(out) :: pt_dot(im, jm, km)
 
   integer :: i, j, k
+  integer :: il, iu, jl, ju, kd, ku ! lower and upper indices
   integer :: ntm, nt
   real(4) :: tint
   real(4) :: pt_east, pt_west, pt_nth, pt_sth, pt_d, pt_u
@@ -42,7 +43,7 @@ subroutine get_pt_dot_omega( dt, u, u_before, v, v_before, omega, omega_before, 
   real(4) :: dphi, dp
 
   ! ntm = 1 calculates 1 time step
-  ntm = 5
+  ntm = 10
 
   pt_dot(:,:,:) = 0.0
 
@@ -73,18 +74,15 @@ subroutine get_pt_dot_omega( dt, u, u_before, v, v_before, omega, omega_before, 
               end if
 
               ! u d(pt)/dx
-              if( i == 1 ) then
-                 pt_east = pt_before(i+1,j,k) *(1-tint) + pt(i+1,j,k) *tint
-                 pt_west = pt_before(im,j,k)*(1-tint) + pt(im,j,k)*tint
-              else if( i == im ) then
-                 pt_east = pt_before(1,j,k)  *(1-tint) + pt(1,j,k)  *tint
-                 pt_west = pt_before(i-1,j,k)*(1-tint) + pt(i-1,j,k)*tint
-              else
-                 pt_east = pt_before(i+1,j,k)*(1-tint)+pt(i+1,j,k)*tint
-                 pt_west = pt_before(i-1,j,k)*(1-tint)+pt(i-1,j,k)*tint
-              endif
+              il = i - 1
+              iu = i + 1
+              if( il == 0 )    il = im
+              if( iu == im+1 ) iu = 1
 
-              u_int  = u_before(i,j,k) * (1-tint) + u(i,j,k) * tint
+              pt_east = pt_before(iu,j,k)*(1-tint)+pt(iu,j,k)*tint
+              pt_west = pt_before(il,j,k)*(1-tint)+pt(il,j,k)*tint
+
+              u_int  = u_before(i,j,k)*(1-tint) + u(i,j,k)*tint
 
               pt_dot(i,j,k) = pt_dot(i,j,k) &
                    &      + u_int * ( pt_east - pt_west ) &
@@ -92,21 +90,16 @@ subroutine get_pt_dot_omega( dt, u, u_before, v, v_before, omega, omega_before, 
                    &      / real(ntm)
 
               ! v d(pt)/dy
-              if( j == 1 ) then
-                 pt_nth = pt_before(i,j+1,k)*(1-tint) + pt(i,j+1,k)*tint
-                 pt_sth = pt_before(i,j,k)  *(1-tint) + pt(i,j,k)  *tint
-                 dphi = ( alat(j+1) - alat(j) )
-              else if( j == jm ) then
-                 pt_nth = pt_before (i,j,k) *(1-tint) + pt(i,j,k)  *tint
-                 pt_sth = pt_before(i,j-1,k)*(1-tint) + pt(i,j-1,k)*tint
-                 dphi = ( alat(j) - alat(j-1) )
-              else
-                 pt_nth = pt_before(i,j+1,k) *(1-tint) + pt(i,j+1,k)*tint
-                 pt_sth = pt_before(i,j-1,k) *(1-tint) + pt(i,j-1,k)*tint
-                 dphi = ( alat(j+1) - alat(j-1) )
-              endif
+              jl = j - 1
+              ju = j + 1
+              if( jl == 0 )    jl = 1
+              if( ju == jm+1 ) ju = jm
 
-              v_int  = v_before(i,j,k) * (1-tint) + v(i,j,k) * tint
+              pt_nth = pt_before(i,ju,k)*(1-tint) + pt(i,ju,k)*tint
+              pt_sth = pt_before(i,jl,k)*(1-tint) + pt(i,jl,k)*tint
+              dphi = ( alat(ju) - alat(jl) )
+
+              v_int  = v_before(i,j,k)*(1-tint) + v(i,j,k)*tint
 
               pt_dot(i,j,k) = pt_dot(i,j,k) &
                    &        + v_int * ( pt_nth - pt_sth ) &
@@ -116,17 +109,15 @@ subroutine get_pt_dot_omega( dt, u, u_before, v, v_before, omega, omega_before, 
               if( k == 1 ) then
                  continue
               else
-                 if( k == km ) then
-                    pt_d = pt_before(i,j,k) *(1-tint) + pt(i,j,k)*tint
-                    pt_u = pt_before(i,j,k-1) *(1-tint) + pt(i,j,k-1)*tint
-                    dp = ( pin(k) - pin(k-1) ) * 100.0
-                 else
-                    pt_d = pt_before(i,j,k+1) *(1-tint) + pt(i,j,k+1)*tint
-                    pt_u = pt_before(i,j,k-1) *(1-tint) + pt(i,j,k-1)*tint
-                    dp = ( pin(k+1) - pin(k-1) ) * 100.0
-                 end if
+                 kd = k + 1
+                 ku = k - 1
+                 if( kd == km+1 ) kd = k
 
-                 omega_int  = omega_before(i,j,k)*(1-tint)+omega(i,j,k)*tint
+                 pt_d = pt_before(i,j,kd)*(1-tint) + pt(i,j,kd)*tint
+                 pt_u = pt_before(i,j,ku)*(1-tint) + pt(i,j,ku)*tint
+                 dp = ( pin(kd) - pin(ku) ) * 100.0
+
+                 omega_int  = omega_before(i,j,k)*(1-tint) + omega(i,j,k)*tint
 
                  pt_dot(i,j,k) = pt_dot(i,j,k) &
                       &        + omega_int * (pt_d - pt_u) &

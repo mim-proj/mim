@@ -487,7 +487,7 @@ program mim
         !open file
         omt=88
         orec=1
-        ofile="/Volumes/Drobo/Isen_MIM/mim/work/w_check/tmp/q3d_tint5_wderived_200001.dr"
+        ofile="/Volumes/Drobo/Isen_MIM/mim/work/w_check/tmp/q3d_refaactor_200001.dr"
         open(omt, file=ofile, form="unformatted", access="direct", recl=4*im*jm*km)
      end if
      ! write to file
