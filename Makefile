@@ -14,12 +14,16 @@ INSTALL=~/bin
 
 
 ##### Intel ifort (for 10.0) #####
-FC=ifort
+#FC=ifort
 #OPTION=-assume byterecl -O3 -fast -warn all -traceback -heap-arrays    # optimized
-OPTION=-assume byterecl -O3 -warn all -traceback -heap-arrays    # optimized
+#OPTION=-assume byterecl -O3 -warn all -traceback -heap-arrays    # optimized
 #OPTION=-assume byterecl -O0 -warn all -heap-arrays#    # no optimized
 #OPTION=-assume byterecl -O0 -warn all -g -traceback -heap-arrays#    # no optimized
 #OPTION=-assume byterecl -C -warn all#     # for debug
+
+##### gfortran
+FC=gfortran
+OPTION=-frecord-marker=4 -O3 -Wall -fbacktrace -g -fcheck=all -fbounds-check
 
 
 OBJS =
@@ -35,7 +39,7 @@ ${PROGRAM} : ${OBJS_MODULE} ${OBJS}
 	${FC} ${OPTION} ${OBJS_MODULE} ${OBJS} -o $@
 
 
-.SUFFIXES : .o .f90 
+.SUFFIXES : .o .f90
 .f90.o :
 	${FC} ${OPTION} -c $< -o $@
 
@@ -48,11 +52,10 @@ clean:
 
 release:
 	rm -rf ${OBJS_MODULE} ${OBJS_MODULE:.o=.f90~} *.mod \
-               ${OBJS} ${OBJS:.o=.f90~} ${PROGRAM} *~
+	       ${OBJS} ${OBJS:.o=.f90~} ${PROGRAM} *~
 
 install:
 	cp ${PROGRAM} ${PROGRAM}-${VERSION}
 	mv ${PROGRAM}-${VERSION} ${INSTALL}
 	rm -f ${INSTALL}/${PROGRAM}
 	ln -s ${INSTALL}/${PROGRAM}-${VERSION} ${INSTALL}/${PROGRAM}
-

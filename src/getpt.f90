@@ -1,7 +1,7 @@
 !
 ! Function
 !   prepare for p -> p+ coordinate transformation
-!   
+!
 ! Arguements (in)
 !   im     : number of input data grid point in x-direction
 !   km     : number of input data grid point in z-direction
@@ -18,7 +18,7 @@
 ! Arguements (out)
 !   dlev   : interpolation parameter (weight)
 !   nlev   : interpolation parameter (grid number)
-!   p_pd   : pressure at the p+ levels 
+!   p_pd   : pressure at the p+ levels
 !   p_zm   : zonal mean pressure at the p+ levels (it should approximate pout)
 !   pt_zm  : (zonal mean) potential temperature at the p+ levels
 !
@@ -47,7 +47,7 @@ subroutine getpt( im, km, ko, icount, pin, pout, &
   real(4) :: pt_pd(im, ko)  ! potential temperature at the p+ levels
   real(4) :: pt_zm_old(ko)
   real(4) :: dr
-  integer :: itmax = 8  ! maximum iteration number
+  integer :: itmax = 10  ! maximum iteration number
   integer :: k, it
 
   ! get 1st approximation of pt_zm
@@ -67,11 +67,16 @@ subroutine getpt( im, km, ko, icount, pin, pout, &
   !***** iteration (itmax or less times) *****!
   do it=1, itmax
 !     write(*,*) it
-     
+
      ! unstable -> stable
-     do k=2, ko
+     do k=2, ko-1
         if( pt_zm(k) < pt_zm(ko) ) then
-           pt_zm(k) = ( pt_zm(k-1) + pt_zm(ko) ) / 2
+           if( k == ko) then
+              pt_zm(k) = ( pt_zm(k-1) + pt_zm(ko) ) / 2
+           else if( k /= ko) then
+              pt_zm(k) = ( pt_zm(k-1) + pt_zm(k+1) ) / 2
+           end if
+
         end if
      end do
 
@@ -100,9 +105,9 @@ subroutine getpt( im, km, ko, icount, pin, pout, &
         if( dr > 0.001 ) exit
      end do
      if( dr <= 0.001 ) exit
-  
+
   end do
-     
+
   ! check p_zm and warn
   do k=1, ko
      dr = abs( p_zm(k) / pout(k) - 1.0 )
@@ -113,7 +118,8 @@ subroutine getpt( im, km, ko, icount, pin, pout, &
   end do
 
   ! check whether the atmosphere is stable or not
-  call getpt_stable( 1, ko, pt_zm, p_pds )
+  call getpt_stable( 1, ko, pt_zm, p_pds, pt_sfc )
+  call getp_stable( 1, ko, p_zm, p_pds)
 
   call check_range( im, 1, ko, p_pd, p_min, p_max, 'getpt()', 'p_pd' )
   call check_range( 1, 1, ko, pt_zm, pt_min, pt_max, 'getpt()', 'pt_zm' )
@@ -126,7 +132,7 @@ end subroutine getpt
 !
 ! Function
 !   prepare for p+ -> p++ coordinate transformation
-!   
+!
 ! Arguements (in)
 !   jm     : number of input data grid point in y-direction
 !   km     : number of input (p+) data grid point in z-direction
@@ -144,8 +150,8 @@ end subroutine getpt
 ! Arguements (out)
 !   dlev_y : interpolation parameter (weight)
 !   nlev_y : interpolation parameter (grid number)
-!   pd_pdd : p+ at the p++ levels 
-!   pd_ym  : global mean pressure at the p++ levels 
+!   pd_pdd : p+ at the p++ levels
+!   pd_ym  : global mean pressure at the p++ levels
 !            (it should approximate pout)
 !   pt_ym  : (global mean) potential temperature at the p++ levels
 !
@@ -175,7 +181,7 @@ subroutine getpt_y( jm, km, ko, icount, pin, pout, alat, &
   real(4) :: pt_pdd(jm, ko)  ! potential temperature at the p++ levels
   real(4) :: pt_ym_old(ko)
   real(4) :: dr
-  integer :: itmax = 8  ! maximum iteration number
+  integer :: itmax = 10  ! maximum iteration number
   integer :: k, it
 
   ! get 1st approximation of pt_ym
@@ -183,7 +189,7 @@ subroutine getpt_y( jm, km, ko, icount, pin, pout, alat, &
        &          pt_pdd, nlev_y, dlev_y )
   call integral_meridional( 1, jm, ko, alat, pt_pdd, &
        &                    pt_ym )
-  
+
   ! get pd_pdd ( p+ at the standard p++ levels ) and pd_ym ( = p++ )
   call getpt_p( 1, jm, km, ko, nlev_y, dlev_y, pin, pt_zm, pt_ym, &
        &        pd_pdd )
@@ -201,13 +207,18 @@ subroutine getpt_y( jm, km, ko, icount, pin, pout, alat, &
      ! unstable -> stable
      do k=2, ko
         if( pt_ym(k) < pt_ym(ko) ) then
-           pt_ym(k) = ( pt_ym(k-1) + pt_ym(ko) ) / 2
+           if( k == ko ) then
+              pt_ym(k) = ( pt_ym(k-1) + pt_ym(ko) ) / 2
+           else if( k /= ko ) then
+              pt_ym(k) = ( pt_ym(k-1) + pt_ym(k+1) ) / 2
+           end if
+
         end if
      end do
 
      ! previous value
      pt_ym_old(:) = pt_ym(:)
-     
+
      ! interpolate pt_ym using pt_ym_old in order to make pd_ym close to pout
      call getpt_ptiter( ko, pout, pt_ym_old, pd_ym, p_pdds, pt_pdds, &
           &             pt_ym )
@@ -231,10 +242,10 @@ subroutine getpt_y( jm, km, ko, icount, pin, pout, alat, &
         if( dr > 0.001 ) exit
      end do
      if( dr <= 0.001 ) exit
-     
+
   end do
 
-  
+
   ! check pd_ym and warn
   do k=1, ko
      dr = abs( pd_ym(k) / pout(k) - 1.0 )
@@ -243,9 +254,10 @@ subroutine getpt_y( jm, km, ko, icount, pin, pout, alat, &
              &      "pd_ym=", pd_ym(k), "err=", dr, "p_pdds=", p_pdds
      end if
   end do
-  
+
   ! check whether the atmosphere is stable or not
-  call getpt_stable( 1, ko, pt_ym, p_pdds )
+  call getpt_stable( 1, ko, pt_ym, p_pdds, pt_pdds )
+  call getp_stable( 1, ko, pd_ym, p_pdds)
 
   call check_range( 1, jm, ko, pd_pdd, p_min, p_max, 'getpt_y()', 'pd_pdd' )
   call check_range( 1, 1, ko, pt_ym, pt_min, pt_max, 'getpt()', 'pt_ym' )
