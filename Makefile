@@ -38,7 +38,7 @@ ${PROGRAM} : ${OBJS_MODULE} ${OBJS}
 	${FC} ${OPTION} ${OBJS_MODULE} ${OBJS} -o $@
 
 
-.SUFFIXES : .o .f90 
+.SUFFIXES : .o .f90
 .f90.o :
 	${FC} ${OPTION} -c $< -o $@
 
@@ -51,11 +51,10 @@ clean:
 
 release:
 	rm -rf ${OBJS_MODULE} ${OBJS_MODULE:.o=.f90~} *.mod \
-               ${OBJS} ${OBJS:.o=.f90~} ${PROGRAM} *~
+	       ${OBJS} ${OBJS:.o=.f90~} ${PROGRAM} *~
 
 install:
 	cp ${PROGRAM} ${PROGRAM}-${VERSION}
 	mv ${PROGRAM}-${VERSION} ${INSTALL}
 	rm -f ${INSTALL}/${PROGRAM}
 	ln -s ${INSTALL}/${PROGRAM}-${VERSION} ${INSTALL}/${PROGRAM}
-

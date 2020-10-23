@@ -1,14 +1,14 @@
 !
 ! Function
 !   get 1st approximation of potential temperature
-!   
+!
 ! Arguements (in)
 !   im     : number of input data grid point in x-direction
 !   jm     : number of input data grid point in y-direction
 !   km     : number of input data grid point in z-direction
 !   ko     : number of output data grid point in z-direction
 !   pin    : input pressure levels
-!   pout   : output p+ levels 
+!   pout   : output p+ levels
 !   pt     : potential temperature at the pressure levels [K]
 !   p_sfc  : surface pressure [hPa]
 !
@@ -19,8 +19,8 @@
 !
 ! Note
 !   -Exactly speaking, pt_zm must be potential temperature at the p+ levels.
-!    Instead, potential temperature at the pressure levels is used 
-!    as a first approximation. Not only pt_zm but also nlev and dlev 
+!    Instead, potential temperature at the pressure levels is used
+!    as a first approximation. Not only pt_zm but also nlev and dlev
 !    will be modified in the other subroutines.
 !
 subroutine getpt_pt1( im, jm, km, ko, pin, pout, pt, p_sfc, &   ! Input
@@ -38,7 +38,7 @@ subroutine getpt_pt1( im, jm, km, ko, pin, pout, pt, p_sfc, &   ! Input
 
   integer :: i, j, k, n
   real(4) :: d
-  
+
   nlev(:,:,:) = 0
   dlev(:,:,:) = 0.0
 
@@ -58,26 +58,26 @@ subroutine getpt_pt1( im, jm, km, ko, pin, pout, pt, p_sfc, &   ! Input
            ! Prepare for interpolation
            !   pin(n) < pout(k) < pin(n+1)
            if( p_sfc(i,j) > pin(n+1) ) then  ! in the atmosphere
-              
+
               d = min(1.0, ( pout(k)-pin(n) ) / ( pin(n+1)-pin(n) ) )
               nlev(i,j,k) = n
               dlev(i,j,k) = d
               pt_pd(i,j,k) = pt(i,j,n) * (1.0-d) + pt(i,j,n+1) * d
-              
+
            else  ! underground
-              
+
               n = nlev(i,j,k-1)
               d = ( p_sfc(i,j)-pin(n) ) / ( pin(n+1)-pin(n) )
               nlev(i,j,k) = n
               dlev(i,j,k) = d
               pt_pd(i,j,k) = pt(i,j,n) * (1.0-d) + pt(i,j,n+1) * d
-              
+
            end if
-           
+
         end do
      end do
   end do
-  
+
   return
 end subroutine getpt_pt1
 
@@ -99,7 +99,7 @@ end subroutine getpt_pt1
 !   nlev <-> n
 !   dlev <-> d (interpolation weight)
 !
-! if p+ -> p++ interpolation, i is replaced by j 
+! if p+ -> p++ interpolation, i is replaced by j
 ! (e.g. im -> jm, pt_zm -> pt_ym)
 !
 subroutine getpt_lev( im, km, ko, pin, pt, pt_sfc, pt_zm, p_sfc,  &
@@ -114,7 +114,7 @@ subroutine getpt_lev( im, km, ko, pin, pt, pt_sfc, pt_zm, p_sfc,  &
   real(4),intent(in)  :: p_sfc(im)
   integer,intent(out) :: nlev(im, ko)
   real(4),intent(out) :: dlev(im, ko)
-  
+
   real(8) :: ppp, dppp
   integer :: i, k, n
 
@@ -124,7 +124,7 @@ subroutine getpt_lev( im, km, ko, pin, pt, pt_sfc, pt_zm, p_sfc,  &
         !********** get pressure ppp corresponding to pt_zm **********!
 
         if( pt_zm(k) > pt_sfc(i) ) then  ! if pt_zm(k) is in the atmosphere
-       
+
            !***** find n which satisfies pt(n) > pt_zm(k) > pt(n+1)
            n = 1
            do while( pt(i,n+1) > pt_zm(k) .and. n <= ko-2 )
@@ -135,10 +135,10 @@ subroutine getpt_lev( im, km, ko, pin, pt, pt_sfc, pt_zm, p_sfc,  &
 
            ! if pt_zm(k) is below the lowermost grid point,
            ! linear interpolation using pt(i,km) and pt_sfc(i)
-           if( pt_zm(k) <= pt(i,km) ) then  
+           if( pt_zm(k) <= pt(i,km) ) then
               ppp = pin(km) + ( pt_zm(k) - pt(i,km) ) &
                    &        / ( pt_sfc(i) - pt(i,km) ) &
-                   &        * ( p_sfc(i) - pin(km) )      
+                   &        * ( p_sfc(i) - pin(km) )
 
            ! if pin(n+1) is under the ground,
            ! linear interpolation using pt(i,n) and pt_sfc(i)
@@ -146,7 +146,7 @@ subroutine getpt_lev( im, km, ko, pin, pt, pt_sfc, pt_zm, p_sfc,  &
               ppp = pin(n) + ( pt_zm(k) - pt(i,n) ) &
                    &       / ( pt_sfc(i) - pt(i,n) ) &
                    &       * ( p_sfc(i) - pin(n) )
-              
+
            !  if pt_zm(k) is above the uppermost grid point,
            !  use definition of potential temperature and assume T=const.
            else if( pt_zm(k) > pt(i,1) ) then
@@ -160,11 +160,11 @@ subroutine getpt_lev( im, km, ko, pin, pt, pt_sfc, pt_zm, p_sfc,  &
 !              ppp = pin(n) + ( pt_zm(k) - pt(i,n) ) / &
 !                   &         ( pt(i,n+1) - pt(i,n) ) &
 !                   &       * ( pin(n+1) - pin(n) )
-              
+
            end if
 
         else ! if pt_zm(k) is under the ground
-           
+
            !***** find n which satisfies pin(n) < p_sfc(k) < pin(n+1)
            n = 1
            do while( pin(n+1) < p_sfc(i) .and. n <= ko-2 )
@@ -186,7 +186,7 @@ subroutine getpt_lev( im, km, ko, pin, pt, pt_sfc, pt_zm, p_sfc,  &
 !        dlev(i,k) = ( ppp - pin(n) ) / ( pin(n+1) - pin(n) )
 !        write(*,*) i, k, ppp, pin(n), pin(n+1), dlev(i,k)
 
-        ! if pt_zm(k) is above the uppermost grid point, 
+        ! if pt_zm(k) is above the uppermost grid point,
         ! use linear interpolation to avoid too small dlev.
         if( dlev(i,k) < 0 .and. ppp < pin(1) ) then
            dlev(i,k) = ( ppp - pin(n) ) / ( pin(n+1) - pin(n) )
@@ -194,7 +194,7 @@ subroutine getpt_lev( im, km, ko, pin, pt, pt_sfc, pt_zm, p_sfc,  &
 
      end do
   end do
-  
+
   return
 end subroutine getpt_lev
 
@@ -230,7 +230,7 @@ subroutine getpt_p( im, jm, km, ko, nlev, dlev, pin, pt, pt_zm, &  ! Input
   real(4),intent(out) :: p_pd(im, jm, ko)
   real(4) :: d
   integer :: i, j, k, l
-  
+
   do i=1, im
      do j=1, jm
         do k=1, ko
@@ -239,7 +239,7 @@ subroutine getpt_p( im, jm, km, ko, nlev, dlev, pin, pt, pt_zm, &  ! Input
            l = nlev(i,j,k)
            d = dlev(i,j,k)
 !           p_pd(i,j,k) = (1.0-d) * pin(l) + d * pin(l+1)
-           ! nlev and dlev is evaluated with log(p)-interpolation, 
+           ! nlev and dlev is evaluated with log(p)-interpolation,
            ! so below is better than above.
            p_pd(i,j,k) = exp( (1.0-d) * log( pin(l) ) + d * log( pin(l+1) ) )
 
@@ -254,7 +254,7 @@ subroutine getpt_p( im, jm, km, ko, nlev, dlev, pin, pt, pt_zm, &  ! Input
 !           if( p_pd(i,j,k) <= pin(1)*1.0e-5 ) then
 !              if( i > 2 ) then
 !                 p_pd(i,j,k) = p_pd(i-1,j,k)
-!              else 
+!              else
 !                 p_pd(i,j,k) = pt_zm(j,k)
 !              end if
 !           end if
@@ -283,68 +283,81 @@ subroutine getpt_ptiter( ko, pout, pt_zm_old, p_zm, p_pds, pt_pds, &
   real(4),intent(in)  :: p_zm(ko)
   real(4),intent(in)  :: p_pds, pt_pds
   real(4),intent(out) :: pt_zm(ko)
-  integer :: k
+  integer :: k, kk
+  !
+  real(4),allocatable :: p_zm_itr(:), pt_zm_itr(:)
+  real(4) :: pl, pu, ptl, ptu
+  real(8) :: a
 
-  do k=1, ko
-     
-     if( abs(pout(k)-p_pds) < 0.0001 ) then  ! pout(k) nearly equals p_pds
-        pt_zm(k) = pt_pds
+  !-- prepare pressure/potential temperature arrays including surface values
+  allocate( p_zm_itr(1:ko+1) )
+  allocate( pt_zm_itr(1:ko+1) )
+  !
+  p_zm_itr(ko+1) = p_pds
+  p_zm_itr(1:ko) = p_zm(1:ko)
+  pt_zm_itr(ko+1) = pt_pds
+  pt_zm_itr(1:ko) = pt_zm_old(1:ko)
+  do k = 1, ko+1
+     if( p_zm_itr(k) > p_pds ) then
+        p_zm_itr(k) = p_pds
+     end if
+     if( pt_zm_itr(k) < pt_pds ) then
+        pt_zm_itr(k) = pt_pds
+     end if
+  end do
 
-     else if( k == 1 ) then  ! top -> use p_zm(k+1) and p_zm(k)
-        
-!        pt_zm(k) = pt_zm_old(k) + ( pt_zm_old(k+1) - pt_zm_old(k) ) &
-!             &                  / ( log(p_zm(k+1)) - log(p_zm(k)) ) &
-!             &                  * ( log(pout(k)) - log(p_zm(k)) ) 
-        pt_zm(k) = pt_zm_old(k) + ( pt_zm_old(k+1) - pt_zm_old(k) ) & ! d(pt)
-             &                  / (      p_zm(k+1) -      p_zm(k) ) & ! d(p+)
-             &                  * ( pout(k) - p_zm(k) ) 
 
-     else if( pout(k) < p_zm(k) ) then  ! use p_zm(k) and p_zm(k-1)
-        
-!        pt_zm(k) = pt_zm_old(k) + ( pt_zm_old(k) - pt_zm_old(k-1) ) &
-!             &                  / ( log(p_zm(k)) - log(p_zm(k-1)) ) &
-!             &                  * ( log(pout(k)) - log(p_zm(k)) )
-        pt_zm(k) = pt_zm_old(k) + ( pt_zm_old(k) - pt_zm_old(k-1) ) & ! d(pt)
-             &                  / (      p_zm(k) -      p_zm(k-1) ) & ! d(p+)
-             &                  * ( pout(k) - p_zm(k) )
-        
-     else if( k == ko ) then  ! bottom -> use p_pds and p_zm(k)
+  pt_zm(:) = -999.0             ! substitute unrealistic values for checking
 
-        if( pt_pds /= pt_zm_old(k) ) then
-!           pt_zm(k) = pt_zm_old(k) + ( pt_pds     - pt_zm_old(k) ) &
-!                &                  / ( log(p_pds) - log(p_zm(k)) ) &
-!                &                  * ( log(pout(k)) - log(p_zm(k)) )
-           pt_zm(k) = pt_zm_old(k) + ( pt_pds - pt_zm_old(k) ) & ! d(pt)
-                &                  / (  p_pds -      p_zm(k) ) & ! d(p+)
-                &                  * ( pout(k) - p_zm(k) )
-        else
-           pt_zm(k) = pt_zm_old(k)
+  kk = 1
+  kloop: do k=2, ko+1                  ! loop for p_zm_itr
+11   continue
+
+     !-- find layers that sandwitch pout(kk)
+     a = ( p_zm_itr(k-1) - pout(kk) )*( p_zm_itr(k) - pout(kk) )
+     if( pout(kk) < p_zm_itr(1)  .or. a <= 0.0 ) then
+
+        if( pout(kk) < p_zm_itr(1) ) then ! use k=1 and 2
+           pl = p_zm_itr(2)
+           pu = p_zm_itr(1)
+           ptl = pt_zm_itr(2)
+           ptu = pt_zm_itr(1)
+        else                    ! a <= 0.0
+           pl = p_zm_itr(k)
+           pu = p_zm_itr(k-1)
+           ptl = pt_zm_itr(k)
+           ptu = pt_zm_itr(k-1)
         end if
-       
-     else if( pout(k) < p_zm(k+1) ) then ! use p_zm(k+1) and p_zm(k)
 
-!        pt_zm(k) = pt_zm_old(k) + ( pt_zm_old(k+1) - pt_zm_old(k) ) &
-!             &                  / ( log(p_zm(k+1)) - log(p_zm(k)) ) &
-!             &                  * ( log(pout(k)) - log(p_zm(k)) )
-        pt_zm(k) = pt_zm_old(k) + ( pt_zm_old(k+1) - pt_zm_old(k) ) & ! d(pt)
-             &                  / (      p_zm(k+1) -      p_zm(k) ) & ! d(p+)
-             &                  * ( pout(k) - p_zm(k) )
+        pt_zm(kk) = ptl + ( ptl - ptu ) &
+             &          / (  pl - pu ) &
+             &          * ( pout(kk) - pl )
 
-     else  ! surface -> use p_pds and p_zm(k)
-        if( pt_pds /= pt_zm_old(k) ) then
-!           pt_zm(k) = pt_zm_old(k) + ( pt_pds - pt_zm_old(k) ) &
-!                &                  / ( log(p_pds) - log(p_zm(k)) ) &
-!                &                  * ( log(pout(k)) - log(p_zm(k)) )
-           pt_zm(k) = pt_zm_old(k) + ( pt_pds - pt_zm_old(k) ) & ! d(pt)
-                &                  / (  p_pds -      p_zm(k) ) & ! d(p+)
-                &                  * ( pout(k) - p_zm(k) )
-        else
-           pt_zm(k) = pt_zm_old(k)
+        kk = kk + 1
+
+        if(kk == ko+1) then     ! check whether all pt_zm are updated or not
+           exit kloop
         end if
-        
+        goto 11
+
      end if
 
+  end do kloop
+
+  !-- surface check
+  do kk = 1, ko
+     if( pt_zm(kk) < 0 ) then
+        if( pout(kk) < p_pds ) then
+           pt_zm(kk) = pt_zm_old(kk) + ( pt_zm_old(kk) - pt_zm_old(kk-1) ) &
+                &                    / ( p_zm(kk) - p_zm(kk-1) ) &
+                &                    * ( pout(kk) - p_zm(kk) )
+        else
+           pt_zm(kk) = pt_pds
+        end if
+     end if
   end do
+
+  deallocate( p_zm_itr, pt_zm_itr )
 
   return
 end subroutine getpt_ptiter
@@ -353,25 +366,53 @@ end subroutine getpt_ptiter
 !
 ! getpt_stable() - check whether the atmosphere is stable or not
 !
-subroutine getpt_stable( jm, ko, pt, p_sfc )
-  implicit none  
+subroutine getpt_stable( jm, ko, pt, p_sfc, pt_sfc )
+  implicit none
   integer,intent(in) :: jm, ko
-  real(4),intent(in) :: pt(jm, ko), p_sfc(jm)
+  real(4),intent(in) :: pt(jm, ko), p_sfc(jm), pt_sfc(jm)
 
   integer :: j, k
-  
-  do j=2, jm
+
+  do j=1, jm
      do k=2, ko
 
         if( pt(j,k) > pt(j,k-1) ) then
            write(6,*) "error in getpt_stable() : pt is instable j=", j, &
                 &             "k=", k, k-1, "pt=", pt(j,k), pt(j,k-1), &
-                &             "p_sfc=", p_sfc(j) 
+                &             "p_sfc=", p_sfc(j), "pt_sfc=", pt_sfc(j)
+           write(6,*) pt(j,:), pt_sfc(j)
            stop
         end if
-        
+
      end do
   end do
-  
-  return 
+
+  return
 end subroutine getpt_stable
+
+
+!
+! getp_stable() - check whether the atmosphere is stable or not
+!
+subroutine getp_stable( jm, ko, p, p_sfc)
+  implicit none
+  integer,intent(in) :: jm, ko
+  real(4),intent(in) :: p(jm, ko), p_sfc(jm)
+
+  integer :: j, k
+
+  do j=1, jm
+     do k=2, ko
+
+        if( p(j,k) < p(j,k-1) ) then
+           write(6,*) "error in getp_stable() : p is instable j=", j, &
+                &             "k=", k, k-1, "p=", p(j,k), p(j,k-1), &
+                &             "p_sfc=", p_sfc(j)
+           stop
+        end if
+
+     end do
+  end do
+
+  return
+end subroutine getp_stable

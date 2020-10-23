@@ -10,7 +10,7 @@ subroutine energy_tendency_dkzdt_vkz( v_zm, kz_zm, dkzdt_vke )
   real(4) :: temp(jm, ko)
 
   temp(:,:) = v_zm(:,:) * kz_zm(:,:) * spread( costbl, 2, ko )
-  
+
   call derivative_y( 1, jm, ko, alat, temp, &
        &             dkzdt_vke )
   dkzdt_vke(:,:) = -dkzdt_vke(:,:) / ( radius * spread(costbl,2,ko) )
@@ -95,11 +95,14 @@ subroutine energy_tendency_dkedt_wke( pt_zm, v_ke_zm, pt_dot_ke_zm, &
   call get_var_w_x_zm( pt_zm, v_ke_zm, pt_dot_ke_zm, &
        &               dummy1, dummy2, w_ke_zm )
   w_ke_zm(:,:) = w_ke_zm(:,:) * spread( rho, 1, jm )
-  
+
   call derivative_z( 1, jm, ko, zd, w_ke_zm, &
        &             dkedt_wke )
 
   dkedt_wke(:,:) = -dkedt_wke(:,:) / spread( rho, 1, jm )
+
+  dkedt_wke(1,:) = 0.0
+  dkedt_wke(jm,:) = 0.0
 
   call check_range( 1, jm, ko, dkedt_wke, econv_min, econv_max, &
        &            'energy_tendency_dkedt_wke()', 'dkedt_wke' )
@@ -123,7 +126,7 @@ subroutine energy_tendency_dkedt_uy( u_zm, epy, dkedt_uy )
 
   call derivative_y( 1, jm, ko, alat, temp, &
        &             dkedt_uy )
-  
+
   dkedt_uy(:,:) = dkedt_uy(:,:) &
        &        / ( spread(rho,1,jm) * radius * radius * spread(costbl,2,ko) )
   dkedt_uy(1,:) = 0   ! suppress sivergence
@@ -155,7 +158,7 @@ subroutine energy_tendency_dkedt_vy( v_zm, gy, dkedt_vy )
 !       &        / ( spread(rho,1,jm) * radius * spread(costbl,2,ko) )
   dkedt_vy(1,:) = 0   ! suppress sivergence
   dkedt_vy(jm,:) = 0  ! suppress sivergence
-  
+
   call check_range( 1, jm, ko, dkedt_vy, econv_min, econv_max, &
        &            'energy_tendency_dkedt_vy()', 'dkedt_vy' )
 
@@ -180,6 +183,9 @@ subroutine energy_tendency_dkedt_uz( u_zm, epz_uw, dkedt_uz )
 
   dkedt_uz(:,:) = dkedt_uz(:,:) &
        &        / ( spread(rho,1,jm) * radius * spread(costbl,2,ko) )
+
+  dkedt_uz(1,:) = 0.0
+  dkedt_uz(jm,:) = 0.0
 
   call check_range( 1, jm, ko, dkedt_uz, econv_min, econv_max, &
        &            'energy_tendency_dkedt_uz()', 'dkedt_uz' )
@@ -206,6 +212,9 @@ subroutine energy_tendency_dkedt_vz( v_zm, gz, dkedt_vz )
   dkedt_vz(:,:) = dkedt_vz(:,:) &
        &        / ( spread(rho,1,jm) * radius )
 
+  dkedt_vz(1,:) = 0.0
+  dkedt_vz(jm,:) = 0.0
+
   call check_range( 1, jm, ko, dkedt_vz, econv_min, econv_max, &
        &            'energy_tendency_dkedt_vz()', 'dkedt_vz' )
 
@@ -228,7 +237,7 @@ end subroutine energy_tendency_dkedt_vz
 !  real(4) :: v_ae_vint(jm)
 !  real(4) :: daedt_vae_vint(jm)
 !  real(4) :: const
-!   
+!
 !  const = cp * (100000.0)**(-rkappa) / (1+rkappa) / grav
 !
 !
@@ -236,13 +245,13 @@ end subroutine energy_tendency_dkedt_vz
 !  do i=1, im
 !     do j=1, jm
 !        do k=1, ko
-!           
+!
 !           if( pt_zm(j,k) < pt(i,j,ko) ) then
 !              !write(*,*) i, j, k
 !              v_pt(i,j,k) = v_pt(i,j,k-1)  ! approx. surface value
 !              cycle
 !           end if
-!           
+!
 !           if( pt_zm(j,k) > pt(i,j,1) ) then
 !              kl = 1
 !              ku = 2
@@ -256,20 +265,20 @@ end subroutine energy_tendency_dkedt_vz
 !                 end if
 !              end do
 !           end if
-!           
-!           
+!
+!
 !           w = ( pt_zm(j,k) - pt(i,j,kl) ) / ( pt(i,j,ku) - pt(i,j,kl) )
 !           v_pt(i,j,k) = w * v(i,j,ku) + (1-w) * v(i,j,kl)
-!           
+!
 !!           write(*,*) i, j, k, pt(i,j,kl), pt_zm(j,k), pt(i,j,ku)
 !!           write(*,*) '       ->', v(i,j,kl), v_pt(i,j,k), v(i,j,ku)
-!           
+!
 !        end do
 !     end do
 !  end do
-!  
 !
-!  
+!
+!
 !  ! integrand
 !  do k=1, ko
 !     do j=1, jm
@@ -290,7 +299,7 @@ end subroutine energy_tendency_dkedt_vz
 !!  call derivative_y(1, jm, ko, alat, pdiff_zm, &
 !!       &            temp_zm)
 !
-!  
+!
 !  call integral_pt(im, jm, ko, pout, p_pds, pt_sfc, pt_zm, pdiff_zm, &
 !       &           v_ae_vint)
 !!  call integral_pt(im, jm, ko, pout, p_pds, pt_sfc, pt_zm, temp_zm, &
@@ -301,7 +310,7 @@ end subroutine energy_tendency_dkedt_vz
 !!  end do
 !  v_ae_vint(:) = v_ae_vint(:) * costbl(:)
 !
-!  
+!
 !
 !  call derivative_y(1, jm, 1, alat, v_ae_vint, &
 !       &            daedt_vae_vint)
@@ -349,12 +358,12 @@ end subroutine energy_tendency_dkedt_vz
 !  real(4) :: pe(im, jm, km)
 !  real(4) :: pe_zm(jm, ko)
 
-  
-  
 
 
 
-  
+
+
+
 !  t_v(:,:,:) = t(:,:,:) * v(:,:,:)
 !  call biseki_biseki(t_v, t_v_zm)
 !
@@ -387,8 +396,7 @@ end subroutine energy_tendency_dkedt_vz
 !  do k=1, ko
 !     write(*,*) k, p_energy_zm(10,k), pe_zm(10,k)
 !  end do
-!  dpedt_vt(:,:) = gasr * ( t_v_zm(:,:) - t_dagger(:,:) * v_zm(:,:) ) 
+!  dpedt_vt(:,:) = gasr * ( t_v_zm(:,:) - t_dagger(:,:) * v_zm(:,:) )
 !  dpedt_vt(:,:) = gasr * t_v_zm(:,:)
 
 !end subroutine energy_tendency_dpedt_vt
-

@@ -47,11 +47,12 @@ subroutine getpt( im, km, ko, icount, pin, pout, &
   real(4) :: pt_pd(im, ko)  ! potential temperature at the p+ levels
   real(4) :: pt_zm_old(ko)
   real(4) :: dr
-  integer :: itmax = 100  ! maximum iteration number
+  integer :: itmax = 10  ! maximum iteration number
   integer :: k, it
   !
-  real(4) :: dlev_bst(im,ko), p_pd_bst(im,ko), p_zm_bst(ko), pt_zm_bst(ko)
-  real(4) :: dr_all(ko), dr_old=0.0
+  real(4) :: dlev_bst(im, ko)
+  real(4) :: p_pd_bst(im, ko), p_zm_bst(ko), pt_zm_bst(ko)
+  real(4) :: dr_all(ko), dr_old = 0.0
   integer :: nlev_bst(im, ko)
 
   ! get 1st approximation of pt_zm
@@ -72,9 +73,14 @@ subroutine getpt( im, km, ko, icount, pin, pout, &
 !     write(*,*) it
 
      ! unstable -> stable
-     do k=2, ko
+     do k=2, ko-1
         if( pt_zm(k) < pt_zm(ko) ) then
-           pt_zm(k) = ( pt_zm(k-1) + pt_zm(ko) ) / 2
+           if( k == ko) then
+              pt_zm(k) = ( pt_zm(k-1) + pt_zm(ko) ) / 2
+           else if( k /= ko) then
+              pt_zm(k) = ( pt_zm(k-1) + pt_zm(k+1) ) / 2
+           end if
+
         end if
      end do
 
@@ -100,36 +106,32 @@ subroutine getpt( im, km, ko, icount, pin, pout, &
      ! check convergence condition and finish if appropriate
      do k=1, ko
         dr = abs( p_zm(k) / pout(k) - 1.0 )
-!        write(6,*) p_zm(k), pout(k)
         dr_all(k) = dr
 !        if( dr > 0.001 ) exit
      end do
 
-     ! if the result is better than previous, then store it
+     ! If the results are betther than previous one, then store it
      if( it == 1 .or. sum(dr_all(:)) < dr_old ) then
         dlev_bst(:,:) = dlev(:,:)
         nlev_bst(:,:) = nlev(:,:)
-        p_zm_bst(:) = p_zm(:)
-        pt_zm_bst(:) = pt_zm(:)
+        p_zm_bst(:)   = p_zm(:)
+        pt_zm_bst(:)  = pt_zm(:)
         p_pd_bst(:,:) = p_pd(:,:)
-        dr_old = sum(dr_all(:))
      end if
 
-!     write(6,*) it, p_zm(37), pt_zm(37), dr
 !     if( dr <= 0.001 ) exit
      if( maxval(dr_all(:)) <= 0.001 ) exit
 
   end do
 
-  ! if it is not converged, then use best result
-  if( it == itmax+1 ) then
+  ! If above iteration is not converged, then use best values
+  if( it == itmax + 1 ) then
      dlev(:,:) = dlev_bst(:,:)
      nlev(:,:) = nlev_bst(:,:)
-     p_zm(:) = p_zm_bst(:)
-     pt_zm(:) = pt_zm_bst(:)
+     p_zm(:)   = p_zm_bst(:)
+     pt_zm(:)  = pt_zm_bst(:)
      p_pd(:,:) = p_pd_bst(:,:)
   end if
-
 
   ! check p_zm and warn
   do k=1, ko
@@ -141,7 +143,8 @@ subroutine getpt( im, km, ko, icount, pin, pout, &
   end do
 
   ! check whether the atmosphere is stable or not
-  call getpt_stable( 1, ko, pt_zm, p_pds )
+  call getpt_stable( 1, ko, pt_zm, p_pds, pt_sfc )
+  call getp_stable( 1, ko, p_zm, p_pds)
 
   call check_range( im, 1, ko, p_pd, p_min, p_max, 'getpt()', 'p_pd' )
   call check_range( 1, 1, ko, pt_zm, pt_min, pt_max, 'getpt()', 'pt_zm' )
@@ -203,12 +206,13 @@ subroutine getpt_y( jm, km, ko, icount, pin, pout, alat, &
   real(4) :: pt_pdd(jm, ko)  ! potential temperature at the p++ levels
   real(4) :: pt_ym_old(ko)
   real(4) :: dr
-  integer :: itmax = 100  ! maximum iteration number
+  integer :: itmax = 10  ! maximum iteration number
   integer :: k, it
   !
-  real(4) :: dlev_y_bst(jm, ko), pd_pdd_bst(jm, ko), pd_ym_bst(ko), pt_ym_bst(ko)
-  real(4) :: dr_all(ko), dr_old=0.0
+  real(4) :: dlev_y_bst(jm, ko)
   integer :: nlev_y_bst(jm, ko)
+  real(4) :: pd_pdd_bst(jm, ko), pd_ym_bst(ko), pt_ym_bst(ko)
+  real(4) :: dr_all(ko), dr_old = 0.0
 
   ! get 1st approximation of pt_ym
   call getpt_pt1( 1, jm, km, ko, pin, pout, pt_zm, p_pds, &
@@ -233,7 +237,12 @@ subroutine getpt_y( jm, km, ko, icount, pin, pout, alat, &
      ! unstable -> stable
      do k=2, ko
         if( pt_ym(k) < pt_ym(ko) ) then
-           pt_ym(k) = ( pt_ym(k-1) + pt_ym(ko) ) / 2
+           if( k == ko ) then
+              pt_ym(k) = ( pt_ym(k-1) + pt_ym(ko) ) / 2
+           else if( k /= ko ) then
+              pt_ym(k) = ( pt_ym(k-1) + pt_ym(k+1) ) / 2
+           end if
+
         end if
      end do
 
@@ -260,34 +269,35 @@ subroutine getpt_y( jm, km, ko, icount, pin, pout, alat, &
      ! check convergence condition and finish if appropriate
      do k=1, ko
         dr = abs( pd_ym(k) / pout(k) - 1.0 )
-        !        if( dr > 0.001 ) exit
         dr_all(k) = dr
+        ! if( dr > 0.001 ) exit
      end do
-     ! if( dr <= 0.001 ) exit
 
+     ! If the results are betther than previous one, then store it
      if( it == 1 .or. sum(dr_all(:)) < dr_old ) then
         dlev_y_bst(:,:) = dlev_y(:,:)
         nlev_y_bst(:,:) = nlev_y(:,:)
-        pd_pdd_bst(:,:) = pd_pdd(:,:)
-        pd_ym_bst(:) = pd_ym(:)
+        pd_ym_bst(:)  = pd_ym(:)
         pt_ym_bst(:) = pt_ym(:)
+        pd_pdd_bst(:,:)   = pd_pdd(:,:)
         dr_old = sum(dr_all(:))
      end if
 
+!     if( dr <= 0.001 ) exit
      if( maxval(dr_all(:)) <= 0.001 ) exit
-     
+
   end do
 
-
-  ! if it is not converged, then use the best results
-  if( it == itmax+1 ) then
+  ! If above iteration is not converged, then use best values
+  if( it == itmax + 1 ) then
      dlev_y(:,:) = dlev_y_bst(:,:)
      nlev_y(:,:) = nlev_y_bst(:,:)
-     pd_pdd(:,:) = pd_pdd_bst(:,:)
-     pd_ym(:) = pd_ym_bst(:)
+     pd_ym(:)  = pd_ym_bst(:)
      pt_ym(:) = pt_ym_bst(:)
+     pd_pdd(:,:)   = pd_pdd_bst(:,:)
+     dr_old = sum(dr_all(:))
   end if
-  
+
   ! check pd_ym and warn
   do k=1, ko
      dr = abs( pd_ym(k) / pout(k) - 1.0 )
@@ -298,7 +308,8 @@ subroutine getpt_y( jm, km, ko, icount, pin, pout, alat, &
   end do
 
   ! check whether the atmosphere is stable or not
-  call getpt_stable( 1, ko, pt_ym, p_pdds )
+  call getpt_stable( 1, ko, pt_ym, p_pdds, pt_pdds )
+  call getp_stable( 1, ko, pd_ym, p_pdds)
 
   call check_range( 1, jm, ko, pd_pdd, p_min, p_max, 'getpt_y()', 'pd_pdd' )
   call check_range( 1, 1, ko, pt_ym, pt_min, pt_max, 'getpt()', 'pt_ym' )
