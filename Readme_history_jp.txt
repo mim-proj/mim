@@ -21,6 +21,23 @@ Iwasaki → Shimizugichi → Tanaka → Ujiie → Miyazaki → Kodama(0.10系)
                                      └→ Uno → Mochi → Kodama(0.20系)
 
 □更新履歴(新しいものが上)
+2020.10.23
+  p+面探査の反復計算を改訂。
+  旧getpt_ptiter()のif分岐では、
+  pout(k) > p_zm(k+1)のときに地上データを使っていたため、
+  イタレーションをするごとにp_zmが目標値poutから遠ざかることがあった。
+  これは特にCMIP5の計算で顕著であった。
+  そこで、get_ptiter()のアルゴリズムの全面的な改訂を行った。
+  計算ログでp_zmとpoutの差を確認すると、新手法では地表付近のみで差がやや見られる。
+  また、getpt()内で、逆転層検出のサブルーチンが使われていなかったので、
+  使うことに変更。
+  p_zmの逆転を検出するgetp_stable()も追加した。
+
+2016.12.21
+  omega読み込みのときのzrevに対応。
+
+2015.08.19
+  namelistにINPUT_ZDEV_ZREVを追加。
 
 2009.03.27
   Version 0.33 Release 1
@@ -205,7 +222,7 @@ Iwasaki → Shimizugichi → Tanaka → Ujiie → Miyazaki → Kodama(0.10系)
 2008.01.20
   Version 0.24 Release 2
   形状抵抗の波数展開の計算ができないbugを解決
-  Version 0.24 Release 1  
+  Version 0.24 Release 1
 
 2008.01.12
   pe_total_zmを計算。これは部分積分を行う前のAeである。
@@ -245,7 +262,7 @@ Iwasaki → Shimizugichi → Tanaka → Ujiie → Miyazaki → Kodama(0.10系)
     過去バージョンとの互換性を保つため、"gh"も残す。
 
 2007.12.17
-  Version 0.23 Release 1  
+  Version 0.23 Release 1
   JRA25動作確認。
   namelistにFILE_U, FILE_V, FILE_T を追加。
 
@@ -256,7 +273,7 @@ Iwasaki → Shimizugichi → Tanaka → Ujiie → Miyazaki → Kodama(0.10系)
   mountain_modify.f90 で、内挿計算のバグを修正
   1hPa以下でc_pz_kzが0になる場合があった。現在解消済。
   鉛直積算値したc_pz_kzへの影響は1%程度。
-  energy_conv.f90を新設。エネルギー変換のコードを移動。  
+  energy_conv.f90を新設。エネルギー変換のコードを移動。
   div_z()を用いていたdivz_tzm, divphi_t, d_u_epzをderivative_p()に変更。
   地表面を考えているので、derivative_p_nops()よりもいいはず。
   地表付近でずれる。鉛直積算もずれる(10%程度かと)
@@ -385,7 +402,7 @@ Iwasaki → Shimizugichi → Tanaka → Ujiie → Miyazaki → Kodama(0.10系)
   getlev()を整形
   meridional_integral()を追加
 
-2007.09.08  
+2007.09.08
   getpt()を3次元化
   stable()を3次元化
   getpzm()を3次元化
