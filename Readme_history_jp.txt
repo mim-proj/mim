@@ -33,6 +33,12 @@ Iwasaki → Shimizugichi → Tanaka → Ujiie → Miyazaki → Kodama(0.10系)
   使うことに変更。
   p_zmの逆転を検出するgetp_stable()も追加した。
 
+2020.08.21
+  get_pt_dot()を改訂。
+  D(pt)/Dtの計算の際、移流項がt-1/2ステップ目の評価なので、
+  移流項も同じくt-1/2ステップ目で評価するように変更。
+  またomegaを入力しない場合には、連続の式よりomegaを推定し、鉛直移流に利用。
+
 2016.12.21
   omega読み込みのときのzrevに対応。
 
