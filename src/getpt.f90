@@ -117,6 +117,7 @@ subroutine getpt( im, km, ko, icount, pin, pout, &
         p_zm_bst(:)   = p_zm(:)
         pt_zm_bst(:)  = pt_zm(:)
         p_pd_bst(:,:) = p_pd(:,:)
+        dr_old = sum(dr_all(:))
      end if
 
 !     if( dr <= 0.001 ) exit
@@ -295,7 +296,6 @@ subroutine getpt_y( jm, km, ko, icount, pin, pout, alat, &
      pd_ym(:)  = pd_ym_bst(:)
      pt_ym(:) = pt_ym_bst(:)
      pd_pdd(:,:)   = pd_pdd_bst(:,:)
-     dr_old = sum(dr_all(:))
   end if
 
   ! check pd_ym and warn
